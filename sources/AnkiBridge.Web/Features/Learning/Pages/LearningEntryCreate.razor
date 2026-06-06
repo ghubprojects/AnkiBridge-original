@@ -4,6 +4,7 @@
 
 @using AnkiBridge.Domain.Enums
 @using AnkiBridge.Web.Components.Abstractions
+@using AnkiBridge.Web.Features.Learning.Models
 
 <PageTitle>Create a learning entry - AnkiBridge</PageTitle>
 
@@ -17,15 +18,52 @@
             <FluentStack Orientation="Orientation.Vertical" VerticalGap="12">
                 <FluentGrid Spacing="1" Style="width:100%">
                     <FluentGridItem lg="12" sm="12" Style="display:flex">
-                        <FluentTextField @bind-Value="@Detail.Headword"
-                                         Name="Headword"
-                                         Label="Headword"
-                                         Required="true"
-                                         Autofocus="true"
-                                         Style="width:100%;" />
+                        @* <FluentAutocomplete TOption="DictionaryEntryOption"
+                                            OnOptionsSearch="@SearchDictionaryEntriesAsync"
+                                            Name="Headword"
+                                            SelectedOptionChanged="@SelectDictionaryEntry"
+                                            OptionText="@(item => item.Name)"
+                                            Label="Headword"
+                                            Required="true"
+                                            Autofocus="true"
+                                            Multiple="false"
+                                            MaximumSelectedOptions="1"
+                                            @bind-Value="@Detail.Headword"
+                                            Style="width:100%;" /> *@
+
+                        @* <FluentAutocomplete TOption="DictionaryEntryOption"
+                                            OnOptionsSearch="@SearchDictionaryEntriesAsync"
+                                            Name="Headword"
+                                            SelectedOptionChanged="@SelectDictionaryEntry"
+                                            OptionText="@(item => item.Headword)"
+                                            Label="Headword"
+                                            Required="true"
+                                            Autofocus="true"
+                                            Multiple="false"
+                                            MaximumSelectedOptions="1"
+                                            @bind-Value="@Detail.Headword"
+                                            Style="width:100%;" /> *@
+
+                        <FluentAutocomplete TOption="DictionaryEntryOption"
+                                            OnOptionsSearch="@SearchDictionaryEntriesAsync"
+                                            Name="Headword"
+                                            SelectedOption="@_selectedEntry"
+                                            SelectedOptionChanged="@OnSelectedEntryChangedAsync"
+                                            OptionValue="@(item => item.Headword)"
+                                            OptionText="@(item => item.DisplayName)"
+                                            ValueText="@Detail.Headword"
+                                            ValueTextChanged="@(text => Detail.Headword = text)"
+                                            Label="Headword"
+                                            Required="true"
+                                            Autofocus="true"
+                                            Multiple="false"
+                                            Style="width:100%;" />
                     </FluentGridItem>
                     <FluentGridItem lg="12" sm="12" Style="display:flex">
                         <FluentSpacer Width="200" />
+                        <p class="button-link" style="margin-top:2px;font-size:12px;" onclick="@ScrapeFromDictionaryOnlineAsync">
+                            Missing entries? Scrape from dictionary online
+                        </p>
                         <FluentValidationMessage For="@(() => Detail.Headword)" />
                     </FluentGridItem>
                 </FluentGrid>
@@ -36,7 +74,7 @@
                                       Name="PartOfSpeech"
                                       Label="Part of speech"
                                       Items="@partOfSpeechOptions"
-                                      OptionText="@(p => p.Text)"
+                                      OptionText="@(p => p.Text.ToLowerInvariant())"
                                       OptionValue="@(p => p.Value.ToString())"
                                       Value="@Detail.PartOfSpeech.ToString()"
                                       ValueChanged="HandleSelectPartOfSpeech"
@@ -47,6 +85,27 @@
                     <FluentGridItem lg="12" sm="12" Style="display:flex">
                         <FluentSpacer Width="200" />
                         <FluentValidationMessage For="@(() => Detail.PartOfSpeech)" />
+                    </FluentGridItem>
+                </FluentGrid>
+
+                <FluentGrid Spacing="1" Style="width:100%">
+                    <FluentGridItem lg="12" sm="12" Style="display:flex">
+                        <FluentSelect TOption="Option<Accent>"
+                                      Name="Accent"
+                                      Label="Accent"
+                                      Items="@accentOptions"
+                                      OptionText="@(p => p.Text.ToLowerInvariant())"
+                                      OptionValue="@(p => p.Value.ToString())"
+                                      Value="@Detail.Accent.ToString()"
+                                      ValueChanged="HandleSelectAccent"
+                                      Required="true"
+                                      Height="108px"
+                                      Style="width:100%;" />
+                    </FluentGridItem>
+
+                    <FluentGridItem lg="12" sm="12" Style="display:flex">
+                        <FluentSpacer Width="200" />
+                        <FluentValidationMessage For="@(() => Detail.Accent)" />
                     </FluentGridItem>
                 </FluentGrid>
 
@@ -65,27 +124,6 @@
                 </FluentGrid>
 
                 <FluentGrid Spacing="1" Style="width:100%">
-                    <FluentGridItem lg="12" sm="12" Style="display:flex">
-                        <FluentSelect TOption="Option<Accent>"
-                                      Name="Accent"
-                                      Label="Accent"
-                                      Items="@accentOptions"
-                                      OptionText="@(p => p.Text)"
-                                      OptionValue="@(p => p.Value.ToString())"
-                                      Value="@Detail.Accent.ToString()"
-                                      ValueChanged="HandleSelectAccent"
-                                      Required="true"
-                                      Height="108px"
-                                      Style="width:100%;" />
-                    </FluentGridItem>
-                    
-                    <FluentGridItem lg="12" sm="12" Style="display:flex">
-                        <FluentSpacer Width="200" />
-                        <FluentValidationMessage For="@(() => Detail.Accent)" />
-                    </FluentGridItem>
-                </FluentGrid>
-
-                <FluentGrid Spacing="1" Style="width:100%">
                     <FluentGridItem lg="12" sm="12" Style="display:flex;align-items:center">
                         <FluentLabel Typo="Typography.Body" Class="uploader-label">Audio</FluentLabel>
                         <FluentInputFile Id="audio-uploader"
@@ -93,10 +131,10 @@
                                          OnInputFileChange="HandleChangeAudioAsync"
                                          Style="position:relative;width:100%;">
                             <ChildContent>
-                                @if (!string.IsNullOrEmpty(audioPreviewUrl))
+                                @if (!string.IsNullOrEmpty(Detail.AudioUrl))
                                 {
                                     <audio controls style="width:100%;">
-                                        <source src="@audioPreviewUrl" type="audio/mpeg" />
+                                        <source src="@Detail.AudioUrl" type="audio/mpeg" />
                                         Your browser does not support audio
                                     </audio>
                                     <FluentIcon Value="@(new Icons.Regular.Size20.Dismiss())"
@@ -135,10 +173,11 @@
                 <FluentGrid Spacing="1" Style="width:100%">
                     <FluentGridItem lg="12" sm="12" Style="display:flex">
                         <FluentCombobox TOption="string"
-                                        @bind-Value="Detail.Definition"
+                                        Value="@Detail.Definition"
+                                        ValueChanged="HandleDefinitionChanged"
                                         Name="Definition"
                                         Label="Definition"
-                                        Items="[]"
+                                        Items="definitionOptions"
                                         Required="true"
                                         Style="width:100%;" />
                     </FluentGridItem>
@@ -173,7 +212,7 @@
                                                 @bind-Value="Detail.Examples[index]"
                                                 Name="Example"
                                                 Label="@(Detail.Examples.Count == 1 ? "Example" : $"Example {index + 1}")"
-                                                Items="[]"
+                                                Items="exampleOptions"
                                                 Style="width:100%;" />
 
                                 <FluentStack HorizontalGap="8"
@@ -184,7 +223,7 @@
                                                       Title="Remove example"
                                                       OnClick="@(() => RemoveExample(index))" />
                                     }
-                               
+
                                     @if (index == Detail.Examples.Count - 1)
                                     {
                                         <FluentButton IconEnd="@(new Icons.Regular.Size16.Add())"
@@ -208,12 +247,19 @@
                                          OnInputFileChange="HandleChangeImageAsync"
                                          Style="position:relative;width:100%;">
                             <ChildContent>
-                                @if (!string.IsNullOrEmpty(imagePreviewUrl))
+                                @if (!string.IsNullOrEmpty(Detail.ImageUrl))
                                 {
-                                    <img src="@imagePreviewUrl" style="width:100%;max-width:500px;border-radius:4px;" />
+                                    <img src="@Detail.ImageUrl" style="width:100%;max-width:500px;border-radius:4px;" />
                                     <FluentIcon Value="@(new Icons.Regular.Size20.Dismiss())"
                                                 OnClick="ClearImage"
                                                 Style="position:absolute;top:8px;right:8px;" />
+                                    @if (_images.Count > 1)
+                                    {
+                                        <FluentButton IconEnd="@(new Icons.Regular.Size20.ChevronRight())"
+                                                      Title="@($"Next image ({_currentImageIndex + 1}/{_images.Count}")"
+                                                      OnClick="NextImage"
+                                                      Style="position:absolute;top:8px;left:8px;" />
+                                    }
                                 }
                                 else
                                 {

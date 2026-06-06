@@ -45,6 +45,7 @@ public sealed class NoteRepository(ApplicationDbContext context) : INoteReposito
         {
             query = query
                 .Include(x => x.LearningEntry)
+                    .ThenInclude(le => le.Examples)
                 .Include(x => x.Deck)
                 .Include(x => x.NoteType)
                 .AsSplitQuery();

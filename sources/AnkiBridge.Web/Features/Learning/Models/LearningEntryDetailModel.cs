@@ -15,10 +15,10 @@ public sealed class LearningEntryDetailModel
     public PartOfSpeech PartOfSpeech { get; set; } = PartOfSpeech.Noun;
 
     [Required]
-    public string Ipa { get; set; } = string.Empty;
+    public Accent Accent { get; set; } = Accent.American;
 
     [Required]
-    public Accent Accent { get; set; } = Accent.American;
+    public string Ipa { get; set; } = string.Empty;
 
     [Required]
     public string Cloze { get; set; } = string.Empty;

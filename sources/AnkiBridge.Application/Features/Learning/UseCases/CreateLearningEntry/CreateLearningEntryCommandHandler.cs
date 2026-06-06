@@ -1,4 +1,5 @@
-﻿using AnkiBridge.Application.Common.Contracts.Storage;
+﻿using AnkiBridge.Application.Common.Contracts.Images;
+using AnkiBridge.Application.Common.Contracts.Storage;
 using AnkiBridge.Domain.Aggregates.Learning;
 using AnkiBridge.Shared.Results;
 using MediatR;
@@ -12,10 +13,6 @@ public sealed class CreateLearningEntryCommandHandler(
 {
     public async Task<Result<Guid>> Handle(CreateLearningEntryCommand request, CancellationToken cancellationToken)
     {
-        var exists = await learningEntryRepository.ExistsAsync(request.Headword, request.PartOfSpeech, cancellationToken);
-        if (exists)
-            return Result.Failure<Guid>("A learning entry with the same headword and part of speech already exists.");
-
         var learningEntry = LearningEntry.Create(
             request.Headword,
             request.PartOfSpeech,
@@ -42,6 +39,8 @@ public sealed class CreateLearningEntryCommandHandler(
 
             if (audioResult.IsFailure)
                 return audioResult.ToFailure<Guid>();
+
+            learningEntry.SetAudioPath(audioResult.Value);
         }
 
         if (request.ImageStream is not null)
@@ -54,6 +53,8 @@ public sealed class CreateLearningEntryCommandHandler(
 
             if (imageResult.IsFailure)
                 return imageResult.ToFailure<Guid>();
+
+            learningEntry.SetImagePath(imageResult.Value);
         }
 
         await learningEntryRepository.AddAsync(learningEntry, cancellationToken);

@@ -7,7 +7,7 @@ internal sealed record DictionaryEntrySeed
 {
     public required string Headword { get; init; }
     public PartOfSpeech PartOfSpeech { get; init; }
-    public EntrySource Source { get; init; }
+    public DictionarySource Source { get; init; }
 
     public List<DictionaryPronunciationSeed> Pronunciations { get; init; } = [];
     public List<DictionaryDefinitionSeed> Definitions { get; init; } = [];

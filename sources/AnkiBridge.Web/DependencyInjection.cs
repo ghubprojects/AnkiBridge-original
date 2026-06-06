@@ -11,6 +11,8 @@ public static class DependencyInjection
         // Register the request dispatcher
         services.AddScoped<IRequestDispatcher, RequestDispatcher>();
 
+        services.AddHttpClient(); // cần cho IHttpClientFactory
+
         return builder;
     }
 }

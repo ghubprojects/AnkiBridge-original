@@ -2,8 +2,6 @@
 
 public enum PartOfSpeech
 {
-    Unknown,
-
     // Core lexical categories
     Noun,
     Verb,
@@ -36,4 +34,6 @@ public enum PartOfSpeech
 
     // Others
     Exclamation,
+    
+    Other
 }

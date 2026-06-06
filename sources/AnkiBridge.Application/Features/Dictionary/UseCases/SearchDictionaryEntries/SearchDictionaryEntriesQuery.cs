@@ -7,4 +7,4 @@ namespace AnkiBridge.Application.Features.Dictionary.UseCases.SearchDictionaryEn
 
 public sealed record SearchDictionaryEntriesQuery(
     string Keyword
-) : PaginationQuery, IRequest<Result<PaginatedResult<DictionaryEntrySearchResult>>>;
+) : IRequest<Result<IReadOnlyList<DictionaryEntrySearchResult>>>;
