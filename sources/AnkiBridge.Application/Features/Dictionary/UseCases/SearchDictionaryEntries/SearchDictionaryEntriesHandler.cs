@@ -8,14 +8,12 @@ namespace AnkiBridge.Application.Features.Dictionary.UseCases.SearchDictionaryEn
 
 public sealed class SearchDictionaryEntriesQueryHandler(
     IDictionaryEntryQueryService queryService)
-    : IRequestHandler<SearchDictionaryEntriesQuery, Result<PaginatedResult<DictionaryEntrySearchResult>>>
+    : IRequestHandler<SearchDictionaryEntriesQuery, Result<IReadOnlyList<DictionaryEntrySearchResult>>>
 {
-    public async Task<Result<PaginatedResult<DictionaryEntrySearchResult>>> Handle(SearchDictionaryEntriesQuery request, CancellationToken cancellationToken)
+    public async Task<Result<IReadOnlyList<DictionaryEntrySearchResult>>> Handle(SearchDictionaryEntriesQuery request, CancellationToken cancellationToken)
     {
-        return await queryService.SearchAsync(
-            request.Keyword,
-            request.PageNumber, 
-            request.PageSize, 
-            cancellationToken);
+        var entries = await queryService.SearchAsync(request.Keyword, cancellationToken);
+
+        return Result.Success(entries);
     }
 }

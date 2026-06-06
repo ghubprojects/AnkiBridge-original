@@ -4,12 +4,12 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace AnkiBridge.Infrastructure.Persistence.EntityConfigurations.Dictionary;
 
-public sealed class EntryImageConfiguration : IEntityTypeConfiguration<EntryImage>
+public sealed class DictionaryImageConfiguration : IEntityTypeConfiguration<DictionaryImage>
 {
-    public void Configure(EntityTypeBuilder<EntryImage> builder)
+    public void Configure(EntityTypeBuilder<DictionaryImage> builder)
     {
         // Table name
-        builder.ToTable("EntryImage", "Dictionary");
+        builder.ToTable("DictionaryImage", "Dictionary");
 
         // Primary key
         builder.HasKey(x => x.Id);

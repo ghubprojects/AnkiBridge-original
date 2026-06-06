@@ -1,4 +1,5 @@
 ﻿using AnkiBridge.Domain.SeedWork;
+using AnkiBridge.Shared.Results;
 
 namespace AnkiBridge.Domain.Aggregates.Dictionary;
 
@@ -13,8 +14,15 @@ public sealed class DictionaryExample : Entity<Guid>
         Text = text;
     }
 
-    internal static DictionaryExample Create(string text)
+    #region Factory Method
+
+    internal static Result<DictionaryExample> Create(string text)
     {
-        return new DictionaryExample(text);
+        if (string.IsNullOrWhiteSpace(text))
+            return Result.Failure<DictionaryExample>("Example text must not be empty.");
+
+        return new DictionaryExample(text.Trim());
     }
+
+    #endregion
 }

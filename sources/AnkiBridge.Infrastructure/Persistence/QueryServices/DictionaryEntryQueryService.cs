@@ -1,34 +1,25 @@
-﻿using AnkiBridge.Application.Common.Query.Pagination;
-using AnkiBridge.Application.Features.Dictionary.Contracts.QueryServices;
+﻿using AnkiBridge.Application.Features.Dictionary.Contracts.QueryServices;
 using AnkiBridge.Application.Features.Dictionary.Contracts.QueryServices.Models;
 using AnkiBridge.Infrastructure.Persistence.DatabaseContext;
-using AnkiBridge.Infrastructure.Persistence.Extensions;
 using Microsoft.EntityFrameworkCore;
 
 namespace AnkiBridge.Infrastructure.Persistence.QueryServices;
 
-public sealed class DictionaryEntryQueryService(
-    ApplicationDbContext context)
-    : IDictionaryEntryQueryService
+public sealed class DictionaryEntryQueryService(ApplicationDbContext context) : IDictionaryEntryQueryService
 {
-    public async Task<PaginatedResult<DictionaryEntrySearchResult>> SearchAsync(
+    public async Task<IReadOnlyList<DictionaryEntrySearchResult>> SearchAsync(
         string keyword,
-        int pageNumber,
-        int pageSize,
         CancellationToken cancellationToken)
     {
         return await context.DictionaryEntries
             .AsNoTracking()
             .Where(x => EF.Functions.Like(x.Headword, $"%{keyword}%"))
             .OrderBy(x => x.Headword)
-            .ToPaginatedResultAsync(
-                pageNumber,
-                pageSize,
-                x => new DictionaryEntrySearchResult(
-                    x.Id,
-                    x.Headword,
-                    x.PartOfSpeech),
-                cancellationToken);
+            .Select(x => new DictionaryEntrySearchResult(
+                x.Id,
+                x.Headword,
+                x.PartOfSpeech))
+            .ToListAsync(cancellationToken);
     }
 
     public async Task<DictionaryEntryDetail?> GetAsync(
@@ -54,6 +45,7 @@ public sealed class DictionaryEntryQueryService(
                         p.AudioUrl))
                     .ToList(),
                 x.Definitions
+                    .OrderBy(d => d.OrderIndex)
                     .Select(d => new DictionaryEntryDetailDefinition(
                         d.Text,
                         d.Examples.Select(e => e.Text).ToList()))

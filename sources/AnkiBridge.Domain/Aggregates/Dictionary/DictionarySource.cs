@@ -1,9 +1,9 @@
 ﻿namespace AnkiBridge.Domain.Aggregates.Dictionary;
 
-public enum EntrySource
+public enum DictionarySource
 {
-    Unknown,
     Cambridge,
     Oxford,
-    Longman
+    Longman,
+    Other
 }

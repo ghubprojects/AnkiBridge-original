@@ -4,5 +4,5 @@ public enum AudioSource
 {
     Unknown,
     Cambridge,
-    GoogleTts
+    Google
 }

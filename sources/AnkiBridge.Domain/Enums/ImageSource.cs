@@ -2,9 +2,9 @@
 
 public enum ImageSource
 {
-    Unknown,
+    UserUpload,
     Pixabay,
-    Unsplash,
     Pexels,
-    UserUpload
+    Unsplash,
+    Other,
 }

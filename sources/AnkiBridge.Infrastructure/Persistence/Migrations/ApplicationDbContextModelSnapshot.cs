@@ -130,7 +130,7 @@ namespace AnkiBridge.Infrastructure.Migrations
                     b.ToTable("DictionaryExample", "Dictionary");
                 });
 
-            modelBuilder.Entity("AnkiBridge.Domain.Aggregates.Dictionary.EntryImage", b =>
+            modelBuilder.Entity("AnkiBridge.Domain.Aggregates.Dictionary.DictionaryImage", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -153,7 +153,7 @@ namespace AnkiBridge.Infrastructure.Migrations
 
                     b.HasIndex("DictionaryEntryId");
 
-                    b.ToTable("EntryImage", "Dictionary");
+                    b.ToTable("DictionaryImage", "Dictionary");
                 });
 
             modelBuilder.Entity("AnkiBridge.Domain.Aggregates.Dictionary.Pronunciation", b =>
@@ -592,7 +592,7 @@ namespace AnkiBridge.Infrastructure.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("AnkiBridge.Domain.Aggregates.Dictionary.EntryImage", b =>
+            modelBuilder.Entity("AnkiBridge.Domain.Aggregates.Dictionary.DictionaryImage", b =>
                 {
                     b.HasOne("AnkiBridge.Domain.Aggregates.Dictionary.DictionaryEntry", null)
                         .WithMany("Images")

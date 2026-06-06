@@ -201,7 +201,7 @@ namespace AnkiBridge.Infrastructure.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "EntryImage",
+                name: "DictionaryImage",
                 schema: "Dictionary",
                 columns: table => new
                 {
@@ -212,9 +212,9 @@ namespace AnkiBridge.Infrastructure.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_EntryImage", x => x.Id);
+                    table.PrimaryKey("PK_DictionaryImage", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_EntryImage_DictionaryEntry_DictionaryEntryId",
+                        name: "FK_DictionaryImage_DictionaryEntry_DictionaryEntryId",
                         column: x => x.DictionaryEntryId,
                         principalSchema: "Dictionary",
                         principalTable: "DictionaryEntry",
@@ -396,9 +396,9 @@ namespace AnkiBridge.Infrastructure.Migrations
                 column: "DefinitionId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_EntryImage_DictionaryEntryId",
+                name: "IX_DictionaryImage_DictionaryEntryId",
                 schema: "Dictionary",
-                table: "EntryImage",
+                table: "DictionaryImage",
                 column: "DictionaryEntryId");
 
             migrationBuilder.CreateIndex(
@@ -487,7 +487,7 @@ namespace AnkiBridge.Infrastructure.Migrations
                 schema: "Dictionary");
 
             migrationBuilder.DropTable(
-                name: "EntryImage",
+                name: "DictionaryImage",
                 schema: "Dictionary");
 
             migrationBuilder.DropTable(

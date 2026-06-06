@@ -82,8 +82,8 @@ public sealed class AnkiConnectService(IAnkiConnectClient client) : IAnkiService
                     x.Example1,
                     x.Example2,
                     x.Example3,
-                    x.AudioPath,
-                    x.ImagePath
+                    x.AudioPath,   // value: "[sound:filename.mp3]"  or empty
+                    x.ImagePath    // value: "<img src='filename.jpg'>" or empty
                 }
             })
         };
@@ -99,5 +99,19 @@ public sealed class AnkiConnectService(IAnkiConnectClient client) : IAnkiService
         var externalNoteIds = result.Value.ToList();
 
         return externalNoteIds;
+    }
+
+    /// <inheritdoc />
+    public async Task<Result<string>> StoreMediaFileFromUrlAsync(
+        string filename,
+        string url,
+        CancellationToken cancellationToken = default)
+    {
+        // AnkiConnect downloads the file from `url` and saves it as `filename`
+        // in Anki's collection.media folder, then returns the stored filename.
+        return await client.SendAsync<string>(
+            "storeMediaFile",
+            new { filename, url },
+            cancellationToken);
     }
 }

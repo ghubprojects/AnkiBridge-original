@@ -9,4 +9,8 @@ public interface IDictionaryEntryRepository : IRepository<DictionaryEntry, Guid>
         string headword,
         PartOfSpeech partOfSpeech,
         CancellationToken cancellationToken = default);
+
+    Task AddAsync(
+        DictionaryEntry entry,
+        CancellationToken cancellationToken);
 }
