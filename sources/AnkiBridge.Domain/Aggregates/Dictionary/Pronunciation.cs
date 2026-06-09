@@ -4,12 +4,14 @@ using AnkiBridge.Shared.Results;
 
 namespace AnkiBridge.Domain.Aggregates.Dictionary;
 
-public class Pronunciation : Entity<Guid>
+public sealed class Pronunciation : Entity<Guid>
 {
     public string Ipa { get; private set; } = default!;
     public Accent Accent { get; private set; }
     public string AudioUrl { get; private set; } = default!;
     public AudioSource AudioSource { get; private set; }
+
+    private Pronunciation() { }
 
     private Pronunciation(
         string ipa,

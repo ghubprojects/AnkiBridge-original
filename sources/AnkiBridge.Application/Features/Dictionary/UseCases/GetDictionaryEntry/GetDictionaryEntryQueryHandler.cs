@@ -11,7 +11,7 @@ public sealed class GetDictionaryEntryQueryHandler(
 {
     public async Task<Result<DictionaryEntryDetail>> Handle(GetDictionaryEntryQuery request, CancellationToken cancellationToken)
     {
-        var entry = await queryService.GetAsync(request.EntryId, cancellationToken);
+        var entry = await queryService.GetAsync(request.Id, cancellationToken);
         if (entry is null)
             return Result<DictionaryEntryDetail>.Failure("Dictionary entry not found.", ErrorType.NotFound);
 

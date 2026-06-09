@@ -5,5 +5,5 @@ using MediatR;
 namespace AnkiBridge.Application.Features.Dictionary.UseCases.GetDictionaryEntry;
 
 public sealed record GetDictionaryEntryQuery(
-    Guid EntryId
+    Guid Id
 ) : IRequest<Result<DictionaryEntryDetail>>;

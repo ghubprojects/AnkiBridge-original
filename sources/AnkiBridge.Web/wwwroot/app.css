@@ -8,52 +8,17 @@ body {
     margin: 0;
 }
 
+h1, h2, h3, h4, h5, h6, p {
+    margin: 0;
+}
+
 .navmenu-icon {
     display: none;
-}
-
-.main {
-    min-height: calc(100dvh - 86px);
-    color: var(--neutral-foreground-rest);
-    align-items: stretch !important;
-}
-
-.body-content {
-    align-self: stretch;
-    height: auto !important;
-    display: flex;
-}
-
-.content {
-    padding: 1rem 1.5rem;
-    align-self: stretch !important;
-    width: 100%;
 }
 
 .manage {
     width: 100dvw;
 }
-
-footer {
-    background: var(--neutral-layer-4);
-    color: var(--neutral-foreground-rest);
-    align-items: center;
-    padding: 10px 10px;
-}
-
-    footer a {
-        color: var(--neutral-foreground-rest);
-        text-decoration: none;
-    }
-
-        footer a:focus {
-            outline: 1px dashed;
-            outline-offset: 3px;
-        }
-
-        footer a:hover {
-            text-decoration: underline;
-        }
 
 .alert {
     border: 1px dashed var(--accent-fill-rest);

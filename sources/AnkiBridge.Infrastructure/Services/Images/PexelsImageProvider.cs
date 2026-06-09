@@ -1,4 +1,5 @@
 ﻿using AnkiBridge.Application.Common.Contracts.Images;
+using AnkiBridge.Domain.Enums;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System.Net.Http.Json;
@@ -44,10 +45,9 @@ public sealed class PexelsImageProvider(
 
         return photos
             .Select(p => new ImageResult(
-                ThumbnailUrl: p.Src.Medium,
+                PreviewUrl: p.Src.Medium,
                 FullUrl: p.Src.Large,
-                AltText: p.Alt,
-                Provider: ProviderName))
+                Source: ImageSource.Pexels))
             .ToList()
             .AsReadOnly();
     }

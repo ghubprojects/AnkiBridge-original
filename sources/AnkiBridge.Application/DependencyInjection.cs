@@ -26,8 +26,8 @@ public static class DependencyInjection
         });
 
         // Register integration event handlers
-        services.AddSubscription<AnkiNoteExportStartedIntegrationEvent, AnkiNoteExportStartedIntegrationEventHandler>();
-        services.AddSubscription<AnkiNotesExportStartedIntegrationEvent, AnkiNotesExportStartedIntegrationEventHandler>();
+        services.AddSubscription<NoteExportStartedIntegrationEvent, NoteExportStartedIntegrationEventHandler>();
+        services.AddSubscription<NotesExportStartedIntegrationEvent, NotesExportStartedIntegrationEventHandler>();
 
         return builder;
     }

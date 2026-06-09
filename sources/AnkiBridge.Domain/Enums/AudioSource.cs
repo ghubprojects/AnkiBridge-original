@@ -2,7 +2,8 @@
 
 public enum AudioSource
 {
-    Unknown,
+    User,
     Cambridge,
-    Google
+    Google,
+    Other
 }

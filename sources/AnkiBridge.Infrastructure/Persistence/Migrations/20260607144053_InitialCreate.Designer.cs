@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace AnkiBridge.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260531081836_InitialCreate")]
+    [Migration("20260607144053_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -157,6 +157,32 @@ namespace AnkiBridge.Infrastructure.Migrations
                     b.HasIndex("DictionaryEntryId");
 
                     b.ToTable("DictionaryImage", "Dictionary");
+                });
+
+            modelBuilder.Entity("AnkiBridge.Domain.Aggregates.Dictionary.DictionaryTranslation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("DictionaryEntryId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Source")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("Text")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DictionaryEntryId");
+
+                    b.ToTable("DictionaryTranslation", "Dictionary");
                 });
 
             modelBuilder.Entity("AnkiBridge.Domain.Aggregates.Dictionary.Pronunciation", b =>
@@ -462,6 +488,10 @@ namespace AnkiBridge.Infrastructure.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 
+                    b.Property<string>("AudioSource")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
                     b.Property<string>("Cloze")
                         .IsRequired()
                         .HasMaxLength(50)
@@ -496,6 +526,10 @@ namespace AnkiBridge.Infrastructure.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 
+                    b.Property<string>("ImageSource")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
                     b.Property<string>("Ipa")
                         .IsRequired()
                         .HasMaxLength(50)
@@ -522,6 +556,11 @@ namespace AnkiBridge.Infrastructure.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
+                    b.Property<string>("TranslationSource")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
                     b.HasKey("Id");
 
                     b.HasIndex("CreatedAt");
@@ -537,29 +576,6 @@ namespace AnkiBridge.Infrastructure.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("CreatedBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTimeOffset?>("DeletedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("DeletedBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<bool>("IsDeleted")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
-
-                    b.Property<DateTimeOffset?>("LastModifiedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("LastModifiedBy")
                         .HasColumnType("uuid");
 
                     b.Property<Guid>("LearningEntryId")
@@ -599,6 +615,15 @@ namespace AnkiBridge.Infrastructure.Migrations
                 {
                     b.HasOne("AnkiBridge.Domain.Aggregates.Dictionary.DictionaryEntry", null)
                         .WithMany("Images")
+                        .HasForeignKey("DictionaryEntryId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("AnkiBridge.Domain.Aggregates.Dictionary.DictionaryTranslation", b =>
+                {
+                    b.HasOne("AnkiBridge.Domain.Aggregates.Dictionary.DictionaryEntry", null)
+                        .WithMany("Translations")
                         .HasForeignKey("DictionaryEntryId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -670,6 +695,8 @@ namespace AnkiBridge.Infrastructure.Migrations
                     b.Navigation("Images");
 
                     b.Navigation("Pronunciations");
+
+                    b.Navigation("Translations");
                 });
 
             modelBuilder.Entity("AnkiBridge.Domain.Aggregates.Flashcard.CardTemplates.CardTemplate", b =>

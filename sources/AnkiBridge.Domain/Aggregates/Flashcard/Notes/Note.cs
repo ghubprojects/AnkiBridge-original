@@ -70,7 +70,7 @@ public sealed class Note : AggregateRoot<Guid>, IAuditableEntity, ISoftDeleteEnt
 
         Status = ExportStatus.Processing;
 
-        AddDomainEvent(new AnkiNoteExportStartedDomainEvent(Id));
+        AddDomainEvent(new NoteExportStartedDomainEvent(Id));
 
         return Result.Success();
     }

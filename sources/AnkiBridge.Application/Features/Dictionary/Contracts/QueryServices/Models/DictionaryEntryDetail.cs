@@ -6,7 +6,9 @@ public sealed record DictionaryEntryDetail(
     Guid Id,
     string Headword,
     PartOfSpeech PartOfSpeech,
-    IReadOnlyList<DictionaryEntryDetailPronunciation> Pronunciations,
-    IReadOnlyList<DictionaryEntryDetailDefinition> Definitions,
-    IReadOnlyList<string> Images
+    DictionarySource Source,
+    List<DictionaryEntryDetailDefinition> Definitions,
+    List<DictionaryEntryDetailTranslation> Translations,
+    List<DictionaryEntryDetailPronunciation> Pronunciations,
+    List<DictionaryEntryDetailImage> Images
 );

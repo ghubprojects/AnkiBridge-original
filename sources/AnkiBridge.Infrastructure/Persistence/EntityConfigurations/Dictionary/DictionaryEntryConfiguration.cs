@@ -50,6 +50,15 @@ public sealed class DictionaryEntryConfiguration : IEntityTypeConfiguration<Dict
         builder.Navigation(x => x.Definitions)
             .UsePropertyAccessMode(PropertyAccessMode.Field);
 
+        // Translations
+        builder.HasMany(x => x.Translations)
+            .WithOne()
+            .HasForeignKey("DictionaryEntryId")
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Navigation(x => x.Translations)
+            .UsePropertyAccessMode(PropertyAccessMode.Field);
+
         // Images
         builder.HasMany(x => x.Images)
             .WithOne()

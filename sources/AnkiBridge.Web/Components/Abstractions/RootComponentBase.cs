@@ -17,4 +17,7 @@ public abstract class RootComponentBase : ComponentBase
 
     [Inject]
     protected IRequestDispatcher Dispatcher { get; set; } = default!;
+
+    [Inject] 
+    protected IHttpClientFactory HttpClientFactory { get; set; } = default!;
 }

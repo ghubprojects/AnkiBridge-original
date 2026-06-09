@@ -5,22 +5,24 @@ using MediatR;
 namespace AnkiBridge.Application.Features.Learning.UseCases.CreateLearningEntry;
 
 public sealed record CreateLearningEntryCommand(
+    Guid? DictionaryEntryId,
     string Headword,
     PartOfSpeech PartOfSpeech,
-    string Ipa,
-    Accent Accent,
     string Cloze,
     string Definition,
+    IEnumerable<string> Examples,
+    TranslationSource TranslationSource,
     string Translation,
-    List<string> Examples,
-    
-    Stream? AudioStream,
+    Accent Accent,
+    string Ipa,
+    AudioSource? AudioSource,
+    string? AudioRelativePath,
+    string? AudioAbsolutePath,
     string? AudioFileName,
     string? AudioContentType,
-
-    Stream? ImageStream,
+    ImageSource? ImageSource,
+    string? ImageRelativePath,
+    string? ImageAbsolutePath,
     string? ImageFileName,
-    string? ImageContentType,
-
-    Guid? DictionaryEntryId
+    string? ImageContentType
 ) : IRequest<Result<Guid>>;

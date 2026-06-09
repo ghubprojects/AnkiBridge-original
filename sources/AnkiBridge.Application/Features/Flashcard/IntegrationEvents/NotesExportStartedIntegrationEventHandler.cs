@@ -5,12 +5,12 @@ using AnkiBridge.Domain.Aggregates.Flashcard.Notes;
 
 namespace AnkiBridge.Application.Features.Flashcard.IntegrationEvents;
 
-public sealed class AnkiNotesExportStartedIntegrationEventHandler(
+public sealed class NotesExportStartedIntegrationEventHandler(
     INoteRepository noteRepository,
     IAnkiService ankiService)
-    : IIntegrationEventHandler<AnkiNotesExportStartedIntegrationEvent>
+    : IIntegrationEventHandler<NotesExportStartedIntegrationEvent>
 {
-    public async Task Handle(AnkiNotesExportStartedIntegrationEvent integrationEvent)
+    public async Task Handle(NotesExportStartedIntegrationEvent integrationEvent)
     {
         var ids = integrationEvent.AnkiNoteIds.Distinct().ToArray();
 

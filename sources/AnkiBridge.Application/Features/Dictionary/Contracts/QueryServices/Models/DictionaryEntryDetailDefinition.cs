@@ -2,5 +2,5 @@
 
 public sealed record DictionaryEntryDetailDefinition(
     string Text,
-    IReadOnlyList<string> Examples
+    List<DictionaryEntryDetailExample> Examples
 );

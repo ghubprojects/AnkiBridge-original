@@ -1,18 +1,47 @@
-::deep .example-label, ::deep label.fluent-input-label, ::deep .uploader-label {
-    min-width: 200px;
+.wrapper {
+    max-width: 800px;
+    margin: auto;
+}
+
+::deep .form-card {
+    background-color: #ffffff;
+    padding: 2rem;
+    border: 1px solid #c1c7ce;
+    border-radius: 4px;
+}
+
+.section-header-title {
+    display: flex;
+    align-items: center;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.section-header-indicator {
+    width: 4px;
+    height: 20px;
+    background: var(--accent-fill-rest);
+    border-radius: 999px;
+}
+
+::deep .dictionary-source-badge > span {
+    padding: 4px;
 }
 
 ::deep fluent-combobox {
     min-width: auto;
 }
 
-::deep .fluent-autocomplete-multiselect {
-    display: flex;
+.generate-ipa-icon {
+    display: inline-block;
+    margin-right: 4px;
+    color: var(--accent-fill-rest);
+    font-size: 14px;
 }
 
 ::deep .fluent-inputfile-container .inputfile-content {
     width: 100%;
-    margin: 24px 0 4px;
+    margin: 40px 0 20px;
     padding: 0 3em;
     display: flex;
     flex-direction: column;

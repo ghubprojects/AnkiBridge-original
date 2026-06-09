@@ -1,5 +1,4 @@
-﻿using AnkiBridge.Domain.Aggregates.Dictionary;
-using AnkiBridge.Domain.Enums;
+﻿using AnkiBridge.Domain.Enums;
 
 namespace AnkiBridge.Infrastructure.Persistence.Seeding.Models;
 

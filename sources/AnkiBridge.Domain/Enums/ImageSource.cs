@@ -2,7 +2,7 @@
 
 public enum ImageSource
 {
-    UserUpload,
+    User,
     Pixabay,
     Pexels,
     Unsplash,

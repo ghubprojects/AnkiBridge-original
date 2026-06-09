@@ -3,143 +3,232 @@
 @inherits RootComponentBase
 
 @using AnkiBridge.Domain.Enums
-@using AnkiBridge.Web.Components.Abstractions
 @using AnkiBridge.Web.Features.Learning.Models
-
-<PageTitle>Create a learning entry - AnkiBridge</PageTitle>
-
-<h3>Create a learning entry</h3>
+@using AnkiBridge.Web.Components.Abstractions
 
 <div class="wrapper">
-    <FluentStack Orientation="Orientation.Vertical">
-        <FluentEditForm EditContext="editContext" style="width:70%">
+    <PageTitle>Create a learning entry - AnkiBridge</PageTitle>
+
+    <div style="margin-bottom: 1.5rem;">
+        <h3>Create a learning entry</h3>
+        <p style="margin-top: 4px;">Fill in the details to enrich your vocabulary.</p>
+    </div>
+
+    <FluentStack Orientation="Orientation.Vertical" Class="form-card">
+        <FluentEditForm EditContext="ViewModel.EditContext" style="width:100%">
             <DataAnnotationsValidator />
 
             <FluentStack Orientation="Orientation.Vertical" VerticalGap="12">
-                <FluentGrid Spacing="1" Style="width:100%">
-                    <FluentGridItem lg="12" sm="12" Style="display:flex">
-                        @* <FluentAutocomplete TOption="DictionaryEntryOption"
-                                            OnOptionsSearch="@SearchDictionaryEntriesAsync"
-                                            Name="Headword"
-                                            SelectedOptionChanged="@SelectDictionaryEntry"
-                                            OptionText="@(item => item.Name)"
-                                            Label="Headword"
-                                            Required="true"
-                                            Autofocus="true"
-                                            Multiple="false"
-                                            MaximumSelectedOptions="1"
-                                            @bind-Value="@Detail.Headword"
-                                            Style="width:100%;" /> *@
+                <FluentStack Orientation="Orientation.Vertical" VerticalGap="12">
+                    <FluentStack Style="align-items:center;">
+                        <FluentStack>
+                            <div class="section-header-indicator"></div>
+                            <div class="section-header-title">Core Information</div>
+                        </FluentStack>
+                        <FluentSpacer />
+                        <FluentBadge Appearance="Appearance.Neutral" Class="dictionary-source-badge">
+                            Cambridge
+                        </FluentBadge>
+                    </FluentStack>
 
-                        @* <FluentAutocomplete TOption="DictionaryEntryOption"
-                                            OnOptionsSearch="@SearchDictionaryEntriesAsync"
-                                            Name="Headword"
-                                            SelectedOptionChanged="@SelectDictionaryEntry"
-                                            OptionText="@(item => item.Headword)"
-                                            Label="Headword"
-                                            Required="true"
-                                            Autofocus="true"
-                                            Multiple="false"
-                                            MaximumSelectedOptions="1"
-                                            @bind-Value="@Detail.Headword"
-                                            Style="width:100%;" /> *@
+                    <FluentStack Orientation="Orientation.Vertical" Style="display:flex">
+                        <FluentStack Style="display:flex;align-items:end">
+                            <FluentAutocomplete TOption="DictionaryEntryOption"
+                                                OnOptionsSearch="@SearchDictionaryEntriesAsync"
+                                                Name="Headword"
+                                                SelectedOption="@ViewModel.SelectedEntry"
+                                                SelectedOptionChanged="@OnSelectedEntryChangedAsync"
+                                                OptionValue="@(item => item.Headword)"
+                                                OptionText="@(item => item.DisplayName)"
+                                                ValueText="@ViewModel.Headword"
+                                                ValueTextChanged="@(text => ViewModel.Headword = text)"
+                                                Label="Headword"
+                                                Required="true"
+                                                Autofocus="true"
+                                                Multiple="false"
+                                                Style="flex:1;" />
+                            <FluentButton OnClick="@ScrapeFromDictionaryOnlineAsync"
+                                          IconStart="@(new Icons.Regular.Size20.Wand())"
+                                          Loading="@ViewModel.IsScrapingOnline"
+                                          Style="margin-bottom:3px;">
+                                Scrape online
+                            </FluentButton>
+                        </FluentStack>
+                        <FluentValidationMessage For="@(() => ViewModel.Headword)" />
+                    </FluentStack>
 
-                        <FluentAutocomplete TOption="DictionaryEntryOption"
-                                            OnOptionsSearch="@SearchDictionaryEntriesAsync"
-                                            Name="Headword"
-                                            SelectedOption="@_selectedEntry"
-                                            SelectedOptionChanged="@OnSelectedEntryChangedAsync"
-                                            OptionValue="@(item => item.Headword)"
-                                            OptionText="@(item => item.DisplayName)"
-                                            ValueText="@Detail.Headword"
-                                            ValueTextChanged="@(text => Detail.Headword = text)"
-                                            Label="Headword"
-                                            Required="true"
-                                            Autofocus="true"
-                                            Multiple="false"
-                                            Style="width:100%;" />
-                    </FluentGridItem>
-                    <FluentGridItem lg="12" sm="12" Style="display:flex">
-                        <FluentSpacer Width="200" />
-                        <p class="button-link" style="margin-top:2px;font-size:12px;" onclick="@ScrapeFromDictionaryOnlineAsync">
-                            Missing entries? Scrape from dictionary online
-                        </p>
-                        <FluentValidationMessage For="@(() => Detail.Headword)" />
-                    </FluentGridItem>
-                </FluentGrid>
+                    <FluentStack>
+                        <FluentStack Orientation="Orientation.Vertical" Style="display:flex">
+                            <FluentSelect TOption="Option<PartOfSpeech>"
+                                          Name="PartOfSpeech"
+                                          Label="Part of speech"
+                                          Items="@ViewModel.PartOfSpeechOptions"
+                                          OptionText="@(p => p.Text)"
+                                          OptionValue="@(p => p.Value.ToString())"
+                                          Value="@ViewModel.PartOfSpeech.ToString()"
+                                          ValueChanged="@(v => { if(Enum.TryParse<PartOfSpeech>(v, out var r)) ViewModel.PartOfSpeech = r; })"
+                                          Required="true"
+                                          Style="width:100%;" />
+                            <FluentValidationMessage For="@(() => ViewModel.PartOfSpeech)" />
+                        </FluentStack>
+                        <FluentStack Orientation="Orientation.Vertical" Style="display:flex">
+                            <FluentTextField @bind-Value="ViewModel.Cloze"
+                                             Name="Cloze"
+                                             Label="Cloze"
+                                             Required="true"
+                                             Style="width:100%;" />
+                            <FluentValidationMessage For="@(() => ViewModel.Cloze)" />
+                        </FluentStack>
+                    </FluentStack>
 
-                <FluentGrid Spacing="1" Style="width:100%">
-                    <FluentGridItem lg="12" sm="12" Style="display:flex">
-                        <FluentSelect TOption="Option<PartOfSpeech>"
-                                      Name="PartOfSpeech"
-                                      Label="Part of speech"
-                                      Items="@partOfSpeechOptions"
-                                      OptionText="@(p => p.Text.ToLowerInvariant())"
-                                      OptionValue="@(p => p.Value.ToString())"
-                                      Value="@Detail.PartOfSpeech.ToString()"
-                                      ValueChanged="HandleSelectPartOfSpeech"
-                                      Required="true"
-                                      Height="232px"
-                                      Style="width:100%;" />
-                    </FluentGridItem>
-                    <FluentGridItem lg="12" sm="12" Style="display:flex">
-                        <FluentSpacer Width="200" />
-                        <FluentValidationMessage For="@(() => Detail.PartOfSpeech)" />
-                    </FluentGridItem>
-                </FluentGrid>
+                    <FluentStack Orientation="Orientation.Vertical" Style="display:flex">
+                        <FluentCombobox TOption="string"
+                                        Value="@ViewModel.Definition"
+                                        ValueChanged="ViewModel.HandleDefinitionChanged"
+                                        Name="Definition"
+                                        Label="Definition"
+                                        Items="ViewModel.DefinitionOptions"
+                                        Required="true"
+                                        Style="width:100%;" />
+                        <FluentValidationMessage For="@(() => ViewModel.Definition)" />
+                    </FluentStack>
 
-                <FluentGrid Spacing="1" Style="width:100%">
-                    <FluentGridItem lg="12" sm="12" Style="display:flex">
-                        <FluentSelect TOption="Option<Accent>"
-                                      Name="Accent"
-                                      Label="Accent"
-                                      Items="@accentOptions"
-                                      OptionText="@(p => p.Text.ToLowerInvariant())"
-                                      OptionValue="@(p => p.Value.ToString())"
-                                      Value="@Detail.Accent.ToString()"
-                                      ValueChanged="HandleSelectAccent"
-                                      Required="true"
-                                      Height="108px"
-                                      Style="width:100%;" />
-                    </FluentGridItem>
+                    <FluentStack Orientation="Orientation.Vertical" Style="display:flex">
+                        <FluentLabel Typo="Typography.Body">Examples</FluentLabel>
+                        <FluentCombobox TOption="string"
+                                        @bind-Value="ViewModel.Example1"
+                                        Name="Example1"
+                                        Placeholder="Example 1"
+                                        Items="ViewModel.ExampleOptions"
+                                        Style="width:100%;" />
+                        <FluentCombobox TOption="string"
+                                        @bind-Value="ViewModel.Example2"
+                                        Name="Example2"
+                                        Placeholder="Example 2"
+                                        Items="ViewModel.ExampleOptions"
+                                        Style="width:100%;" />
+                        <FluentCombobox TOption="string"
+                                        @bind-Value="ViewModel.Example3"
+                                        Name="Example3"
+                                        Placeholder="Example 3"
+                                        Items="ViewModel.ExampleOptions"
+                                        Style="width:100%;" />
+                    </FluentStack>
+                </FluentStack>
 
-                    <FluentGridItem lg="12" sm="12" Style="display:flex">
-                        <FluentSpacer Width="200" />
-                        <FluentValidationMessage For="@(() => Detail.Accent)" />
-                    </FluentGridItem>
-                </FluentGrid>
+                <FluentStack Orientation="Orientation.Vertical" VerticalGap="12" Style="margin-top:24px">
+                    <FluentStack>
+                        <div class="section-header-indicator"></div>
+                        <div class="section-header-title">Translation</div>
+                    </FluentStack>
 
-                <FluentGrid Spacing="1" Style="width:100%">
-                    <FluentGridItem lg="12" sm="12" Style="display:flex">
-                        <FluentTextField @bind-Value="Detail.Ipa"
+                    <FluentStack>
+                        <FluentStack Orientation="Orientation.Vertical" Style="display:flex">
+                            <FluentSelect TOption="Option<TranslationSource>"
+                                          Name="TranslationSource"
+                                          Label="Translation source"
+                                          Items="@ViewModel.TranslationSourceOptions"
+                                          OptionText="@(p => p.Text)"
+                                          OptionValue="@(p => p.Value.ToString())"
+                                          Value="@ViewModel.TranslationSource.ToString()"
+                                          ValueChanged="@(v => { if(Enum.TryParse<TranslationSource>(v, out var r)) ViewModel.TranslationSource = r; })"
+                                          Required="true"
+                                          Style="width:100%;" />
+                            <FluentValidationMessage For="@(() => ViewModel.TranslationSource)" />
+                        </FluentStack>
+
+                        <FluentStack Orientation="Orientation.Vertical" Style="display:flex">
+                            <FluentTextField @bind-Value="ViewModel.Translation"
+                                             Name="Translation"
+                                             Label="Translation"
+                                             Required="true"
+                                             Style="width:100%;" />
+                            <FluentValidationMessage For="@(() => ViewModel.Translation)" />
+                        </FluentStack>
+                    </FluentStack>
+                </FluentStack>
+
+                <FluentStack Orientation="Orientation.Vertical" VerticalGap="12" Style="margin-top:24px">
+                    <FluentStack>
+                        <div class="section-header-indicator"></div>
+                        <div class="section-header-title">Pronunciation</div>
+                    </FluentStack>
+
+                    <FluentStack>
+                        <FluentStack Orientation="Orientation.Vertical" Style="display:flex">
+                            <FluentStack Style="display:flex;align-items:end">
+                                <FluentStack Orientation="Orientation.Vertical" Style="flex:1">
+                                    <FluentSelect TOption="Option<Accent>"
+                                                  Name="Accent"
+                                                  Label="Accent"
+                                                  Items="@ViewModel.AccentOptions"
+                                                  OptionText="@(p => p.Text)"
+                                                  OptionValue="@(p => p.Value.ToString())"
+                                                  Value="@ViewModel.Accent.ToString()"
+                                                  ValueChanged="@(v => { if(Enum.TryParse<Accent>(v, out var r)) ViewModel.Accent = r; })"
+                                                  Required="true"
+                                                  Style="width:100%;" />
+                                </FluentStack>
+                                <FluentButton OnClick="@GenerateIpaAsync"
+                                              Loading="@ViewModel.IsGeneratingIpa"
+                                              Disabled="@string.IsNullOrWhiteSpace(ViewModel.Headword)">
+                                    <div class="generate-ipa-icon">/æ/</div>
+                                    Generate IPA
+                                </FluentButton>
+                            </FluentStack>
+                            <FluentValidationMessage For="@(() => ViewModel.Accent)" />
+                        </FluentStack>
+                    </FluentStack>
+
+                    <FluentStack Orientation="Orientation.Vertical" Style="display:flex">
+                        <FluentTextField @bind-Value="ViewModel.Ipa"
                                          Name="Ipa"
                                          Label="IPA"
                                          Required="true"
                                          Style="width:100%;" />
-                    </FluentGridItem>
-                    <FluentGridItem lg="12" sm="12" Style="display:flex">
-                        <FluentSpacer Width="200" />
-                        <FluentValidationMessage For="@(() => Detail.Ipa)" />
-                    </FluentGridItem>
-                </FluentGrid>
+                        <FluentValidationMessage For="@(() => ViewModel.Ipa)" />
+                    </FluentStack>
 
-                <FluentGrid Spacing="1" Style="width:100%">
-                    <FluentGridItem lg="12" sm="12" Style="display:flex;align-items:center">
-                        <FluentLabel Typo="Typography.Body" Class="uploader-label">Audio</FluentLabel>
+                    <FluentStack Orientation="Orientation.Vertical" Style="display:flex">
+                        <FluentStack Style="display:flex;align-items:end">
+                            <FluentStack Orientation="Orientation.Vertical" Style="flex:1">
+                                <FluentSelect TOption="Option<AudioSource>"
+                                              Name="AudioSource"
+                                              Label="Audio source"
+                                              Items="@ViewModel.AudioSourceOptions"
+                                              OptionText="@(p => p.Text)"
+                                              OptionValue="@(p => p.Value.ToString())"
+                                              Value="@(ViewModel.AudioSource?.ToString() ?? string.Empty)"
+                                              ValueChanged="@(v => { if(Enum.TryParse<AudioSource>(v, out var r)) ViewModel.AudioSource = r; })"
+                                              Required="true"
+                                              Style="width:100%;" />
+                            </FluentStack>
+                            <FluentButton OnClick="@GenerateAudioAsync"
+                                          Loading="@ViewModel.IsGeneratingAudio"
+                                          Disabled="@string.IsNullOrWhiteSpace(ViewModel.Headword)"
+                                          IconStart="@(new Icons.Regular.Size16.PersonVoice())"
+                                          Style="margin-bottom:1px;">
+                                Generate
+                            </FluentButton>
+                        </FluentStack>
+                        <FluentValidationMessage For="@(() => ViewModel.AudioSource)" />
+                    </FluentStack>
+
+                    <FluentStack Orientation="Orientation.Vertical">
+                        <FluentLabel Typo="Typography.Body" Class="uploader-label">Audio preview</FluentLabel>
                         <FluentInputFile Id="audio-uploader"
                                          Accept="audio/*"
                                          OnInputFileChange="HandleChangeAudioAsync"
                                          Style="position:relative;width:100%;">
                             <ChildContent>
-                                @if (!string.IsNullOrEmpty(Detail.AudioUrl))
+                                @if (!string.IsNullOrEmpty(ViewModel.AudioUrl))
                                 {
-                                    <audio controls style="width:100%;">
-                                        <source src="@Detail.AudioUrl" type="audio/mpeg" />
+                                    <audio controls style="width:100%;" src="@(ViewModel.AudioPreviewUrl ?? ViewModel.AudioUrl)">
                                         Your browser does not support audio
                                     </audio>
                                     <FluentIcon Value="@(new Icons.Regular.Size20.Dismiss())"
-                                                OnClick="ClearAudio"
-                                                Style="position:absolute;top:8px;right:8px;" />
+                                                OnClick="ViewModel.ClearAudio"
+                                                Style="position:absolute;top:8px;right:8px;cursor:pointer;" />
                                 }
                                 else
                                 {
@@ -149,115 +238,59 @@
                                 }
                             </ChildContent>
                         </FluentInputFile>
-                    </FluentGridItem>
-                    <FluentGridItem lg="12" sm="12" Style="display:flex">
-                        <FluentSpacer Width="200" />
-                        <FluentValidationMessage For="@(() => Detail.Ipa)" />
-                    </FluentGridItem>
-                </FluentGrid>
-
-                <FluentGrid Spacing="1" Style="width:100%">
-                    <FluentGridItem lg="12" sm="12" Style="display:flex">
-                        <FluentTextField @bind-Value="Detail.Cloze"
-                                         Name="Cloze"
-                                         Label="Cloze"
-                                         Required="true"
-                                         Style="width:100%;" />
-                    </FluentGridItem>
-                    <FluentGridItem lg="12" sm="12" Style="display:flex">
-                        <FluentSpacer Width="200" />
-                        <FluentValidationMessage For="@(() => Detail.Cloze)" />
-                    </FluentGridItem>
-                </FluentGrid>
-
-                <FluentGrid Spacing="1" Style="width:100%">
-                    <FluentGridItem lg="12" sm="12" Style="display:flex">
-                        <FluentCombobox TOption="string"
-                                        Value="@Detail.Definition"
-                                        ValueChanged="HandleDefinitionChanged"
-                                        Name="Definition"
-                                        Label="Definition"
-                                        Items="definitionOptions"
-                                        Required="true"
-                                        Style="width:100%;" />
-                    </FluentGridItem>
-                    <FluentGridItem lg="12" sm="12" Style="display:flex">
-                        <FluentSpacer Width="200" />
-                        <FluentValidationMessage For="@(() => Detail.Definition)" />
-                    </FluentGridItem>
-                </FluentGrid>
-
-                <FluentGrid Spacing="1" Style="width:100%">
-                    <FluentGridItem lg="12" sm="12" Style="display:flex">
-                        <FluentTextField @bind-Value="Detail.Translation"
-                                         Name="Translation"
-                                         Label="Translation"
-                                         Required="true"
-                                         Style="width:100%;" />
-                    </FluentGridItem>
-                    <FluentGridItem lg="12" sm="12" Style="display:flex">
-                        <FluentSpacer Width="200" />
-                        <FluentValidationMessage For="@(() => Detail.Translation)" />
-                    </FluentGridItem>
-                </FluentGrid>
-
-                <FluentStack Orientation="Orientation.Vertical" VerticalGap="12">
-                    @for (int i = 0; i < Detail.Examples.Count; i++)
-                    {
-                        var index = i;
-
-                        <FluentGrid Spacing="1" Style="width:100%">
-                            <FluentGridItem lg="12" sm="12" Style="position:relative;display:flex;align-items:center">
-                                <FluentCombobox TOption="string"
-                                                @bind-Value="Detail.Examples[index]"
-                                                Name="Example"
-                                                Label="@(Detail.Examples.Count == 1 ? "Example" : $"Example {index + 1}")"
-                                                Items="exampleOptions"
-                                                Style="width:100%;" />
-
-                                <FluentStack HorizontalGap="8"
-                                             Style="position:absolute;margin-left:100%;width:auto">
-                                    @if (Detail.Examples.Count > 1)
-                                    {
-                                        <FluentButton IconEnd="@(new Icons.Regular.Size16.Dismiss())"
-                                                      Title="Remove example"
-                                                      OnClick="@(() => RemoveExample(index))" />
-                                    }
-
-                                    @if (index == Detail.Examples.Count - 1)
-                                    {
-                                        <FluentButton IconEnd="@(new Icons.Regular.Size16.Add())"
-                                                      Title="Add an example"
-                                                      Disabled="@(Detail.Examples.Count >= 3)"
-                                                      OnClick="AddExample" />
-                                    }
-                                </FluentStack>
-
-                                <FluentValidationMessage For="@(() => Detail.Examples[index])" />
-                            </FluentGridItem>
-                        </FluentGrid>
-                    }
+                        <FluentValidationMessage For="@(() => ViewModel.AudioUrl)" />
+                    </FluentStack>
                 </FluentStack>
 
-                <FluentGrid Spacing="1" Style="width:100%">
-                    <FluentGridItem lg="12" sm="12" Style="display:flex;align-items:center">
-                        <FluentLabel Typo="Typography.Body" Class="uploader-label">Image</FluentLabel>
+                <FluentStack Orientation="Orientation.Vertical" VerticalGap="12" Style="margin-top:24px">
+                    <FluentStack>
+                        <div class="section-header-indicator"></div>
+                        <div class="section-header-title">Illustration</div>
+                    </FluentStack>
+
+                    <FluentStack Orientation="Orientation.Vertical" Style="display:flex">
+                        <FluentStack Style="display:flex;align-items:end">
+                            <FluentStack Orientation="Orientation.Vertical" Style="flex:1">
+                                <FluentSelect TOption="Option<ImageSource>"
+                                              Name="ImageSource"
+                                              Label="Image source"
+                                              Items="@ViewModel.ImageSourceOptions"
+                                              OptionText="@(p => p.Text)"
+                                              OptionValue="@(p => p.Value.ToString())"
+                                              Value="@(ViewModel.ImageSource?.ToString() ?? string.Empty)"
+                                              ValueChanged="@(v => { if(Enum.TryParse<ImageSource>(v, out var r)) ViewModel.ImageSource = r; })"
+                                              Required="true"
+                                              Style="width:100%;" />
+                            </FluentStack>
+                            <FluentButton OnClick="@LoadMoreImagesAsync"
+                                          Loading="@ViewModel.IsLoadingMoreImages"
+                                          Disabled="@string.IsNullOrWhiteSpace(ViewModel.Headword)"
+                                          IconStart="@(new Icons.Regular.Size16.ArrowSync())"
+                                          Style="margin-bottom:1px;">
+                                Load more
+                            </FluentButton>
+                        </FluentStack>
+                        <FluentValidationMessage For="@(() => ViewModel.ImageSource)" />
+                    </FluentStack>
+
+                    <FluentStack Orientation="Orientation.Vertical">
+                        <FluentLabel Typo="Typography.Body" Class="uploader-label">Image preview</FluentLabel>
                         <FluentInputFile Id="image-uploader"
                                          Accept="image/*"
                                          OnInputFileChange="HandleChangeImageAsync"
                                          Style="position:relative;width:100%;">
                             <ChildContent>
-                                @if (!string.IsNullOrEmpty(Detail.ImageUrl))
+                                @if (!string.IsNullOrEmpty(ViewModel.ImageUrl))
                                 {
-                                    <img src="@Detail.ImageUrl" style="width:100%;max-width:500px;border-radius:4px;" />
+                                    <img src="@ViewModel.ImageUrl" style="width:100%;max-width:500px;border-radius:4px;" />
                                     <FluentIcon Value="@(new Icons.Regular.Size20.Dismiss())"
-                                                OnClick="ClearImage"
-                                                Style="position:absolute;top:8px;right:8px;" />
-                                    @if (_images.Count > 1)
+                                                OnClick="ViewModel.ClearImage"
+                                                Style="position:absolute;top:8px;right:8px;cursor:pointer;" />
+                                    @if (ViewModel.Images.Count > 1)
                                     {
                                         <FluentButton IconEnd="@(new Icons.Regular.Size20.ChevronRight())"
-                                                      Title="@($"Next image ({_currentImageIndex + 1}/{_images.Count}")"
-                                                      OnClick="NextImage"
+                                                      Title="@($"Next image ({ViewModel.CurrentImageIndex + 1}/{ViewModel.Images.Count})")"
+                                                      OnClick="ViewModel.NextImage"
                                                       Style="position:absolute;top:8px;left:8px;" />
                                     }
                                 }
@@ -269,28 +302,24 @@
                                 }
                             </ChildContent>
                         </FluentInputFile>
-                    </FluentGridItem>
-                    <FluentGridItem lg="12" sm="12" Style="display:flex">
-                        <FluentSpacer Width="200" />
-                        <FluentValidationMessage For="@(() => Detail.Ipa)" />
-                    </FluentGridItem>
-                </FluentGrid>
+                        <FluentValidationMessage For="@(() => ViewModel.ImageUrl)" />
+                    </FluentStack>
+                </FluentStack>
             </FluentStack>
 
-            <FluentDivider Style="margin:16px 0;" />
+            <FluentDivider Style="margin:32px 0;" />
 
-            <FluentStack Style="margin-top:16px;">
-                <FluentButton OnClick="SubmitAsync"
-                              Loading="@IsSubmitting"
-                              Appearance="Appearance.Accent"
-                              Style="min-width:100px">
-                    Create
-                </FluentButton>
-
-                <FluentButton OnClick="@ClearForm"
+            <FluentStack Style="justify-content:end;" HorizontalGap="16">
+                <FluentButton OnClick="@ViewModel.ClearForm"
                               Appearance="Appearance.Neutral"
                               Style="min-width:100px">
                     Clear
+                </FluentButton>
+                <FluentButton OnClick="SubmitAsync"
+                              Loading="@ViewModel.IsSubmitting"
+                              Appearance="Appearance.Accent"
+                              Style="min-width:100px">
+                    Create
                 </FluentButton>
             </FluentStack>
         </FluentEditForm>
