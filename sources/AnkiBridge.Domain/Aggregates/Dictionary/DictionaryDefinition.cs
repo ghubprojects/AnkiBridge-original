@@ -46,7 +46,7 @@ public sealed class DictionaryDefinition : Entity<Guid>
 
     internal Result AddExamples(IReadOnlyList<string> texts)
     {
-        var results = texts.Select(DictionaryExample.Create);
+        var results = texts.Select(DictionaryExample.Create).ToList();
 
         var failure = results.FirstOrDefault(r => r.IsFailure);
         if (failure is not null)

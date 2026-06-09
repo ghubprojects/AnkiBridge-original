@@ -1,10 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using AnkiBridge.Application.Common.Contracts.Images;
+using AnkiBridge.Shared.Results;
+using MediatR;
 
-namespace AnkiBridge.Application.Features.Dictionary.UseCases.SearchImages
-{
-    internal class SearchImagesQuery
-    {
-    }
-}
+namespace AnkiBridge.Application.Features.Dictionary.UseCases.SearchImages;
+
+public sealed record SearchImagesQuery(
+    string Keyword,
+    int Count = 5,
+    int Page = 1) : IRequest<Result<IReadOnlyList<ImageResult>>>;

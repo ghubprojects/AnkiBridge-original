@@ -90,12 +90,15 @@ namespace AnkiBridge.Infrastructure.Migrations
                     DictionaryEntryId = table.Column<Guid>(type: "uuid", nullable: true),
                     Headword = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
                     PartOfSpeech = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
-                    Ipa = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
-                    Accent = table.Column<string>(type: "character varying(10)", maxLength: 10, nullable: false),
                     Cloze = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
                     Definition = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: false),
+                    TranslationSource = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
                     Translation = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    Accent = table.Column<string>(type: "character varying(10)", maxLength: 10, nullable: false),
+                    Ipa = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
+                    AudioSource = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: true),
                     AudioPath = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    ImageSource = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: true),
                     ImagePath = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
                     CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
                     CreatedBy = table.Column<Guid>(type: "uuid", nullable: false),
@@ -223,6 +226,28 @@ namespace AnkiBridge.Infrastructure.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "DictionaryTranslation",
+                schema: "Dictionary",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    Source = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
+                    Text = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
+                    DictionaryEntryId = table.Column<Guid>(type: "uuid", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_DictionaryTranslation", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_DictionaryTranslation_DictionaryEntry_DictionaryEntryId",
+                        column: x => x.DictionaryEntryId,
+                        principalSchema: "Dictionary",
+                        principalTable: "DictionaryEntry",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Pronunciation",
                 schema: "Dictionary",
                 columns: table => new
@@ -253,13 +278,6 @@ namespace AnkiBridge.Infrastructure.Migrations
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
                     Text = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
-                    CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
-                    CreatedBy = table.Column<Guid>(type: "uuid", nullable: false),
-                    LastModifiedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
-                    LastModifiedBy = table.Column<Guid>(type: "uuid", nullable: true),
-                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
-                    DeletedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
-                    DeletedBy = table.Column<Guid>(type: "uuid", nullable: true),
                     LearningEntryId = table.Column<Guid>(type: "uuid", nullable: false)
                 },
                 constraints: table =>
@@ -402,6 +420,12 @@ namespace AnkiBridge.Infrastructure.Migrations
                 column: "DictionaryEntryId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_DictionaryTranslation_DictionaryEntryId",
+                schema: "Dictionary",
+                table: "DictionaryTranslation",
+                column: "DictionaryEntryId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_LearningEntry_CreatedAt",
                 schema: "Learning",
                 table: "LearningEntry",
@@ -488,6 +512,10 @@ namespace AnkiBridge.Infrastructure.Migrations
 
             migrationBuilder.DropTable(
                 name: "DictionaryImage",
+                schema: "Dictionary");
+
+            migrationBuilder.DropTable(
+                name: "DictionaryTranslation",
                 schema: "Dictionary");
 
             migrationBuilder.DropTable(

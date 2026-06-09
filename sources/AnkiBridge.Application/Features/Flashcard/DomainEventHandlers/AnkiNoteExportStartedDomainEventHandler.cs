@@ -8,11 +8,11 @@ namespace AnkiBridge.Application.Features.Flashcard.DomainEventHandlers;
 
 public sealed class AnkiNoteExportStartedDomainEventHandler(
     IOutboxMessageRepository outboxMessageRepository)
-    : INotificationHandler<AnkiNoteExportStartedDomainEvent>
+    : INotificationHandler<NoteExportStartedDomainEvent>
 {
-    public async Task Handle(AnkiNoteExportStartedDomainEvent notification, CancellationToken cancellationToken)
+    public async Task Handle(NoteExportStartedDomainEvent notification, CancellationToken cancellationToken)
     {
-        var integrationEvent = new AnkiNoteExportStartedIntegrationEvent(notification.AnkiNoteId);
+        var integrationEvent = new NoteExportStartedIntegrationEvent(notification.AnkiNoteId);
 
         var message = new OutboxMessage(
             JsonSerializer.Serialize(integrationEvent),

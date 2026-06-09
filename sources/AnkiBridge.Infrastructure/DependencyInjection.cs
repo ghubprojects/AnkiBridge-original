@@ -149,6 +149,12 @@ public static class DependencyInjection
             configuration.GetSection(CambridgeDictionaryOptions.SectionName));
 
         services.AddScoped<IDictionaryProvider, CambridgeDictionaryProvider>();
+        services.AddScoped<IPhraseIpaResolver, CambridgePhraseIpaResolver>();
+
+        services.AddHttpClient<GoogleTranslationProvider>();
+        services.AddScoped<CambridgeTranslationProvider>();
+        services.AddScoped<GoogleTranslationProvider>();
+        services.AddScoped<ITranslationProvider, FallbackTranslationProvider>();
 
         return services;
     }

@@ -1,0 +1,18 @@
+﻿::deep .main {
+    min-height: calc(100dvh - 50px);
+    color: var(--neutral-foreground-rest);
+    align-items: stretch !important;
+}
+
+::deep .body-content {
+    align-self: stretch;
+    height: auto !important;
+    display: flex;
+    background-color: #f7f9fb;
+}
+
+.content {
+    padding: 1.5rem;
+    align-self: stretch !important;
+    width: 100%;
+}

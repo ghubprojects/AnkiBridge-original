@@ -55,7 +55,7 @@ public sealed class ExportAnkiNotesCommandHandler(
                 return markResult;
         }
 
-        var integrationEvent = new AnkiNotesExportStartedIntegrationEvent(ids);
+        var integrationEvent = new NotesExportStartedIntegrationEvent(ids);
 
         var message = new OutboxMessage(
             JsonSerializer.Serialize(integrationEvent),

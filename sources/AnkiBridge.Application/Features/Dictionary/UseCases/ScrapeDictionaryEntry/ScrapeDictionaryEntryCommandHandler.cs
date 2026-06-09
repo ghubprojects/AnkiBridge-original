@@ -12,14 +12,15 @@ public sealed class ScrapeDictionaryEntryCommandHandler(
     IDictionaryProvider provider,
     IDictionaryEntryRepository repository,
     ISpeechSynthesizer speech,
-    IImageProvider images)
+    IImageProvider images,
+    IPhraseIpaResolver phraseIpaResolver,
+    ITranslationProvider translations)
     : IRequestHandler<ScrapeDictionaryEntryCommand, Result>
 {
     public async Task<Result> Handle(ScrapeDictionaryEntryCommand request, CancellationToken cancellationToken)
     {
         var word = request.Headword.Trim();
 
-        // ── 1. Scrape ────────────────────────────────────────────────────────
         var scrapeResult = await provider.ScrapeAsync(word, cancellationToken);
         if (scrapeResult.IsFailure)
             return scrapeResult;
@@ -27,6 +28,9 @@ public sealed class ScrapeDictionaryEntryCommandHandler(
         var scrapedEntries = scrapeResult.Value;
         if (scrapedEntries.Count == 0)
             return Result.Failure("No entries found for the specified word.");
+
+        // Resolve translations once — shared across all POS entries of the same word
+        var translationResults = await ResolveTranslationsAsync(word, cancellationToken);
 
         // ── 2. Create entries ────────────────────────────────────────────────
         foreach (var scrapedEntry in scrapedEntries)
@@ -42,7 +46,7 @@ public sealed class ScrapeDictionaryEntryCommandHandler(
             var entry = createResult.Value;
 
             // ── 3. Pronunciations ────────────────────────────────────────────
-            var pronResult = AddPronunciations(entry, scrapedEntry, word);
+            var pronResult = await AddPronunciationsAsync(entry, scrapedEntry, word, cancellationToken); // ← await
             if (pronResult.IsFailure)
                 return pronResult;
 
@@ -50,6 +54,10 @@ public sealed class ScrapeDictionaryEntryCommandHandler(
             var defResult = AddDefinitions(entry, scrapedEntry);
             if (defResult.IsFailure)
                 return defResult;
+
+            var transResult = AddTranslations(entry, translationResults);
+            if (transResult.IsFailure)
+                return transResult;
 
             // ── 5. Images ────────────────────────────────────────────────────
             var imageResult = await AddImagesAsync(entry, word, cancellationToken);
@@ -66,38 +74,66 @@ public sealed class ScrapeDictionaryEntryCommandHandler(
 
     // ── Pronunciations ───────────────────────────────────────────────────────
 
-    private Result AddPronunciations(
+    private async Task<Result> AddPronunciationsAsync(
         DictionaryEntry entry,
         ScrapedEntry scrapedEntry,
-        string word)
+        string word,
+        CancellationToken cancellationToken)
     {
-        // Cambridge provides no audio for some phrases — guarantee at least one US entry.
-        if (scrapedEntry.Pronunciations.Count == 0)
+        // Tầng 1: Cambridge trả về đầy đủ — dùng luôn.
+        if (scrapedEntry.Pronunciations.Count > 0)
         {
-            return entry.AddPronunciation(
-                ipa: string.Empty,
-                accent: Accent.American,
-                audioUrl: speech.BuildAudioUrl(word),
-                audioSource: AudioSource.Google);
+            foreach (var p in scrapedEntry.Pronunciations)
+            {
+                var (audioUrl, audioSource) = p.AudioUrl is not null
+                    ? (p.AudioUrl, AudioSource.Cambridge)
+                    : (speech.BuildAudioUrl(word), AudioSource.Google);
+
+                var result = entry.AddPronunciation(
+                    ipa: p.Ipa,
+                    accent: p.Accent,
+                    audioUrl: audioUrl,
+                    audioSource: audioSource);
+
+                if (result.IsFailure)
+                    return result;
+            }
+
+            return Result.Success();
         }
 
-        foreach (var p in scrapedEntry.Pronunciations)
+        // Tầng 2: Phrase không có IPA — thử ghép từng từ.
+        if (IsPhrase(word))
         {
-            var (audioUrl, audioSource) = p.AudioUrl is not null
-                ? (p.AudioUrl, AudioSource.Cambridge)
-                : (speech.BuildAudioUrl(word), AudioSource.Google);
+            var resolvedAny = false;
 
-            var result = entry.AddPronunciation(
-                ipa: p.Ipa,
-                accent: p.Accent,
-                audioUrl: audioUrl,
-                audioSource: audioSource);
+            foreach (var accent in new[] { Accent.British, Accent.American })
+            {
+                var ipa = await phraseIpaResolver.ResolveAsync(word, accent, cancellationToken);
+                if (ipa is null) continue;
 
-            if (result.IsFailure)
-                return result;
+                var result = entry.AddPronunciation(
+                    ipa: ipa,
+                    accent: accent,
+                    audioUrl: speech.BuildAudioUrl(word),
+                    audioSource: AudioSource.Google);
+
+                if (result.IsFailure)
+                    return result;
+
+                resolvedAny = true;
+            }
+
+            if (resolvedAny)
+                return Result.Success();
         }
 
-        return Result.Success();
+        // Tầng 3: Không resolve được — TTS + IPA trống, user có thể bổ sung sau.
+        return entry.AddPronunciation(
+            ipa: string.Empty,
+            accent: Accent.American,
+            audioUrl: speech.BuildAudioUrl(word),
+            audioSource: AudioSource.Google);
     }
 
     // ── Definitions ──────────────────────────────────────────────────────────
@@ -109,6 +145,30 @@ public sealed class ScrapeDictionaryEntryCommandHandler(
             var result = entry.AddDefinition(d.Text, d.Examples);
             if (result.IsFailure)
                 return result;
+        }
+
+        return Result.Success();
+    }
+
+    // ── Translations ─────────────────────────────────────────────────────────
+
+    private async Task<IReadOnlyList<TranslationLookupResult>> ResolveTranslationsAsync(
+        string word, CancellationToken ct)
+    {
+        var result = await translations.GetTranslationsAsync(word, ct);
+
+        // Non-fatal — user can add manually from UI
+        return result.IsSuccess ? result.Value : [];
+    }
+
+    private static Result AddTranslations(
+        DictionaryEntry entry,
+        IReadOnlyList<TranslationLookupResult> translationResults)
+    {
+        foreach (var t in translationResults)
+        {
+            var result = entry.AddTranslation(t.Text, t.Source);
+            if (result.IsFailure) return result;
         }
 
         return Result.Success();
@@ -127,29 +187,24 @@ public sealed class ScrapeDictionaryEntryCommandHandler(
         {
             imageResults = await images.SearchAsync(word, count: 3, cancellationToken: cancellationToken);
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            // Image search failure is non-fatal — log and continue without images.
-            // The user can trigger a reload from the UI.
             return Result.Success();
         }
 
         foreach (var image in imageResults)
         {
-            var imageSource = image.Provider switch
-            {
-                "Pixabay" => ImageSource.Pixabay,
-                "Pexels" => ImageSource.Pexels,
-                _ => ImageSource.Pixabay
-            };
-
-            var result = entry.AddImage(image.FullUrl, imageSource);
+            var result = entry.AddImage(image.FullUrl, image.Source);
             if (result.IsFailure)
                 return result;
         }
 
         return Result.Success();
     }
+
+    // ── Helpers ──────────────────────────────────────────────────────────────
+
+    private static bool IsPhrase(string word) => word.Contains(' ');
 
     // ── PartOfSpeech mapping ─────────────────────────────────────────────────
 

@@ -1,0 +1,9 @@
+﻿.wrapper {
+    background-color: #f7f9fb;
+    border-right: 1px solid #c1c7ce;
+}
+
+::deep .fluent-nav-item.expander > .positioning-region,
+::deep .fluent-nav-item > .fluent-nav-link > .positioning-region {
+    background-color: #f7f9fb;
+}

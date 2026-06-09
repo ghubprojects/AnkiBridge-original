@@ -2,4 +2,4 @@
 
 namespace AnkiBridge.Domain.Aggregates.Flashcard.Notes.Events;
 
-public sealed record AnkiNoteExportStartedDomainEvent(Guid AnkiNoteId) : DomainEvent;
+public sealed record NoteExportStartedDomainEvent(Guid AnkiNoteId) : DomainEvent;

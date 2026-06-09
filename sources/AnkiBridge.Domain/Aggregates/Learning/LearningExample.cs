@@ -1,27 +1,11 @@
 ﻿using AnkiBridge.Domain.SeedWork;
+using AnkiBridge.Shared.Results;
 
 namespace AnkiBridge.Domain.Aggregates.Learning;
 
-public sealed class LearningExample : Entity<Guid>, IAuditableEntity, ISoftDeleteEntity
+public sealed class LearningExample : Entity<Guid>
 {
     public string Text { get; private set; } = default!;
-
-    #region Audit
-
-    public DateTimeOffset CreatedAt { get; }
-    public Guid CreatedBy { get; }
-    public DateTimeOffset? LastModifiedAt { get; }
-    public Guid? LastModifiedBy { get; }
-
-    #endregion
-
-    #region Soft Delete
-
-    public bool IsDeleted { get; }
-    public DateTimeOffset? DeletedAt { get; }
-    public Guid? DeletedBy { get; }
-
-    #endregion
 
     private LearningExample() { }
 
@@ -31,14 +15,22 @@ public sealed class LearningExample : Entity<Guid>, IAuditableEntity, ISoftDelet
         Text = text;
     }
 
-    internal static LearningExample Create(string text)
+    internal static Result<LearningExample> Create(string text)
     {
-        return new LearningExample(text);
+        if (string.IsNullOrWhiteSpace(text))
+            return Result.Failure<LearningExample>("Example text cannot be empty.");
+
+        return new LearningExample(text.Trim());
     }
 
-    internal void UpdateText(string newText)
+    internal Result UpdateText(string newText)
     {
+        if (string.IsNullOrWhiteSpace(newText))
+            return Result.Failure("Example text cannot be empty.");
+
         if (Text != newText)
-            Text = newText;
+            Text = newText.Trim();
+
+        return Result.Success();
     }
 }

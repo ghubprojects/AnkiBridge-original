@@ -23,28 +23,6 @@ public sealed class LearningExampleConfiguration : IEntityTypeConfiguration<Lear
             .IsRequired()
             .HasMaxLength(200);
 
-        // Audit
-        builder.Property(x => x.CreatedAt)
-            .IsRequired();
-
-        builder.Property(x => x.CreatedBy)
-            .IsRequired();
-
-        builder.Property(x => x.LastModifiedAt);
-
-        builder.Property(x => x.LastModifiedBy);
-
-        // Soft Delete
-        builder.Property(x => x.IsDeleted)
-            .IsRequired()
-            .HasDefaultValue(false);
-
-        builder.Property(x => x.DeletedAt);
-
-        builder.Property(x => x.DeletedBy);
-
-        builder.HasQueryFilter(x => !x.IsDeleted);
-
         // Indexes
         builder.HasIndex("LearningEntryId");
     }

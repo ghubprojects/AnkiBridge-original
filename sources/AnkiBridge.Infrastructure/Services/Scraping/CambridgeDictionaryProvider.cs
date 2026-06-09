@@ -12,29 +12,17 @@ namespace AnkiBridge.Infrastructure.Services.Scraping;
 
 /// <summary>
 /// Scrapes Cambridge Dictionary (https://dictionary.cambridge.org) using AngleSharp.
-/// HTTP is handled by <see cref="IBrowsingContext"/> (configured in DI with a
-/// custom HttpClientRequester carrying the required User-Agent header).
 ///
-/// Cambridge HTML structure targeted:
-///   .entry-body__el / .idiom-block     → one block per POS / idiom
-///     .hw.dhw                           → headword
-///     .pos.dpos                         → part of speech
-///     .uk.dpron-i / .us.dpron-i         → pronunciation blocks
-///       .ipa.dipa                       → IPA string
-///       source[type=audio/mpeg]         → audio URL
-///     .def-block                        → one block per definition
-///       .def.ddef_d                     → definition text
-///       .examp .eg                      → example sentences
+/// Every element lookup uses an ordered fallback list: the first selector that finds
+/// at least one element wins; the rest are skipped.
 /// </summary>
 public sealed class CambridgeDictionaryProvider(
     IOptions<CambridgeDictionaryOptions> options,
     ILogger<CambridgeDictionaryProvider> logger)
     : IDictionaryProvider, IDisposable
 {
-    /// <summary>
-    /// Selectors tried in priority order. The first one that yields at least one element wins;
-    /// remaining selectors are skipped. Prefer CALD4 over CACD, entry blocks over idiom blocks.
-    /// </summary>
+    // ── Selector priority lists ──────────────────────────────────────────────
+
     private static readonly string[] EntryBlockSelectors =
     [
         ".dictionary[data-id='cald4'] .entry-body__el",
@@ -42,6 +30,15 @@ public sealed class CambridgeDictionaryProvider(
         ".dictionary[data-id='cald4'] .idiom-block",
         ".dictionary[data-id='cacd'] .idiom-block",
     ];
+
+    private static readonly string[] HeadwordSelectors = [".dhw", ".hw"];
+    private static readonly string[] PartOfSpeechSelectors = [".dpos", ".pos"];
+    private static readonly string[] UkContainerSelectors = [".uk.dpron-i", ".uk"];
+    private static readonly string[] UsContainerSelectors = [".us.dpron-i", ".us"];
+    private static readonly string[] IpaSelectors = [".dpron .dipa", ".pron .ipa"];
+    private static readonly string[] DefinitionBlockSelectors = [".dsense_b > .ddef_block", ".sense-body > .def-block"];
+    private static readonly string[] DefinitionSelectors = [".ddef_d"];
+    private static readonly string[] ExampleSelectors = [".deg", ".eg"];
 
     private readonly CambridgeDictionaryOptions _options = options.Value;
     private readonly IBrowsingContext _context = BrowsingContext.New(
@@ -102,7 +99,6 @@ public sealed class CambridgeDictionaryProvider(
         try
         {
             var blocks = FindEntryBlocks(document);
-
             if (blocks.Length == 0)
             {
                 logger.LogWarning("No entry blocks found for word={Word}", word);
@@ -125,25 +121,19 @@ public sealed class CambridgeDictionaryProvider(
         }
     }
 
-    /// <summary>
-    /// Iterates <see cref="EntryBlockSelectors"/> in order and returns the first
-    /// non-empty result. Returns an empty array when no selector matches.
-    /// </summary>
     private static IElement[] FindEntryBlocks(IDocument document)
     {
         foreach (var selector in EntryBlockSelectors)
         {
             var blocks = document.QuerySelectorAll(selector);
-            if (blocks.Length > 0)
-                return [.. blocks];
+            if (blocks.Length > 0) return [.. blocks];
         }
-
         return [];
     }
 
     private ScrapedEntry? ParseEntryBlock(IElement block, string sourceUrl)
     {
-        var headword = block.QuerySelector(".hw.dhw")?.TextContent.Trim();
+        var headword = QueryFirstText(block, HeadwordSelectors);
         if (string.IsNullOrWhiteSpace(headword))
         {
             logger.LogDebug("Skipping entry block — no headword found");
@@ -152,7 +142,7 @@ public sealed class CambridgeDictionaryProvider(
 
         return new ScrapedEntry(
             Headword: headword,
-            PartOfSpeech: block.QuerySelector(".pos.dpos")?.TextContent.Trim() ?? string.Empty,
+            PartOfSpeech: QueryFirstText(block, PartOfSpeechSelectors) ?? string.Empty,
             SourceUrl: sourceUrl,
             Pronunciations: ParsePronunciations(block),
             Definitions: ParseDefinitions(block));
@@ -161,21 +151,25 @@ public sealed class CambridgeDictionaryProvider(
     private static List<ScrapedPronunciation> ParsePronunciations(IElement block)
     {
         var result = new List<ScrapedPronunciation>(2);
-        TryAddPronunciation(block, ".uk.dpron-i", Accent.British, result);
-        TryAddPronunciation(block, ".us.dpron-i", Accent.American, result);
+        TryAddPronunciation(block, UkContainerSelectors, IpaSelectors, Accent.British, result);
+        TryAddPronunciation(block, UsContainerSelectors, IpaSelectors, Accent.American, result);
         return result;
     }
 
     private static void TryAddPronunciation(
-        IElement block, string selector, Accent accent, List<ScrapedPronunciation> target)
+        IElement block,
+        string[] containerSelectors,
+        string[] ipaSelectors,
+        Accent accent,
+        List<ScrapedPronunciation> target)
     {
-        var pronBlock = block.QuerySelector(selector);
-        if (pronBlock is null) return;
+        var container = QueryFirst(block, containerSelectors);
+        if (container is null) return;
 
-        var ipa = pronBlock.QuerySelector(".ipa.dipa")?.TextContent.Trim();
+        var ipa = QueryFirstText(container, ipaSelectors);
         if (string.IsNullOrWhiteSpace(ipa)) return;
 
-        var audioSrc = pronBlock
+        var audioSrc = container
             .QuerySelectorAll("source")
             .FirstOrDefault(s => s.GetAttribute("type") == "audio/mpeg")
             ?.GetAttribute("src");
@@ -186,26 +180,70 @@ public sealed class CambridgeDictionaryProvider(
     }
 
     private static List<ScrapedDefinition> ParseDefinitions(IElement block) =>
-        block.QuerySelectorAll(".def-block")
-             .Select(ParseDefinitionBlock)
-             .OfType<ScrapedDefinition>()
-             .ToList();
+        QueryFirstAll(block, DefinitionBlockSelectors)
+            .Select(ParseDefinitionBlock)
+            .OfType<ScrapedDefinition>()
+            .ToList();
 
     private static ScrapedDefinition? ParseDefinitionBlock(IElement defBlock)
     {
-        var text = defBlock.QuerySelector(".def.ddef_d")?.TextContent;
+        var text = QueryFirstText(defBlock, DefinitionSelectors);
         if (string.IsNullOrWhiteSpace(text)) return null;
 
-        var examples = defBlock
-            .QuerySelectorAll(".examp .eg")
+        var examples = QueryFirstAll(defBlock, ExampleSelectors)
             .Select(e => e.TextContent.Trim())
             .Where(e => !string.IsNullOrWhiteSpace(e))
             .ToList()
             .AsReadOnly();
 
-        var definition = CollapseWhitespace(text).TrimEnd(':').TrimEnd();
+        return new ScrapedDefinition(
+            CollapseWhitespace(text).TrimEnd(':').TrimEnd(),
+            examples);
+    }
 
-        return new ScrapedDefinition(definition, examples);
+    // ── Selector helpers ─────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Returns the first element matched by the first selector that yields a result.
+    /// Returns <c>null</c> when no selector matches.
+    /// </summary>
+    private static IElement? QueryFirst(IElement root, string[] selectors)
+    {
+        foreach (var selector in selectors)
+        {
+            var el = root.QuerySelector(selector);
+            if (el is not null) return el;
+        }
+        return null;
+    }
+
+    /// <summary>
+    /// Returns the trimmed <see cref="IElement.TextContent"/> of the first element
+    /// matched by the first selector that yields a non-empty result.
+    /// Returns <c>null</c> when no selector matches.
+    /// </summary>
+    private static string? QueryFirstText(IElement root, string[] selectors)
+    {
+        foreach (var selector in selectors)
+        {
+            var text = root.QuerySelector(selector)?.TextContent.Trim();
+            if (!string.IsNullOrWhiteSpace(text)) return text;
+        }
+        return null;
+    }
+
+    /// <summary>
+    /// Returns all elements matched by the first selector that yields at least one element;
+    /// remaining selectors are skipped. Returns an empty enumerable when nothing matches.
+    /// </summary>
+    private static IEnumerable<IElement> QueryFirstAll(IElement root, string[] selectors)
+    {
+        foreach (var selector in selectors)
+        {
+            var elements = root.QuerySelectorAll(selector);
+            if (elements.Length > 0) return elements;
+        }
+        return [];
     }
 
     // ── Utilities ────────────────────────────────────────────────────────────

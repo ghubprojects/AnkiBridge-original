@@ -1,4 +1,5 @@
 ﻿using AnkiBridge.Application.Common.Contracts.Images;
+using AnkiBridge.Domain.Enums;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System.Net.Http.Json;
@@ -16,7 +17,6 @@ public sealed class PixabayImageProvider(
     ILogger<PixabayImageProvider> logger) 
     : IImageProvider
 {
-    private const string ProviderName = "Pixabay";
     private const string BaseUrl = "https://pixabay.com/api/";
     private readonly PixabayOptions _options = options.Value;
 
@@ -43,10 +43,9 @@ public sealed class PixabayImageProvider(
 
         return hits
             .Select(h => new ImageResult(
-                ThumbnailUrl: h.PreviewUrl,
+                PreviewUrl: h.PreviewUrl,
                 FullUrl: h.LargeImageUrl,
-                AltText: h.Tags,
-                Provider: ProviderName))
+                Source: ImageSource.Pixabay))
             .ToList()
             .AsReadOnly();
     }

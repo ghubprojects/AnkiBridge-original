@@ -2,4 +2,4 @@
 
 namespace AnkiBridge.Application.Features.Flashcard.IntegrationEvents;
 
-public sealed record AnkiNoteExportStartedIntegrationEvent(Guid AnkiNoteId) : IntegrationEvent;
+public sealed record NoteExportStartedIntegrationEvent(Guid AnkiNoteId) : IntegrationEvent;

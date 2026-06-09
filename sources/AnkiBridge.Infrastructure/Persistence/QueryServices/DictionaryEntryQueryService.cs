@@ -38,19 +38,31 @@ public sealed class DictionaryEntryQueryService(ApplicationDbContext context) : 
                 x.Id,
                 x.Headword,
                 x.PartOfSpeech,
-                x.Pronunciations
-                    .Select(p => new DictionaryEntryDetailPronunciation(
-                        p.Accent,
-                        p.Ipa,
-                        p.AudioUrl))
-                    .ToList(),
+                x.Source,
                 x.Definitions
                     .OrderBy(d => d.OrderIndex)
                     .Select(d => new DictionaryEntryDetailDefinition(
                         d.Text,
-                        d.Examples.Select(e => e.Text).ToList()))
+                        d.Examples
+                            .Select(e => new DictionaryEntryDetailExample(e.Text))
+                            .ToList()))
                     .ToList(),
-                x.Images.Select(i => i.Url).ToList()))
+                x.Translations
+                    .Select(t => new DictionaryEntryDetailTranslation(
+                        t.Source,
+                        t.Text))
+                    .ToList(),
+                x.Pronunciations
+                    .Select(p => new DictionaryEntryDetailPronunciation(
+                        p.Accent,
+                        p.Ipa,
+                        p.AudioSource,
+                        p.AudioUrl))
+                    .ToList(),
+                x.Images.Select(i => new DictionaryEntryDetailImage(
+                    i.Source,
+                    i.Url))
+                .ToList()))
             .FirstOrDefaultAsync(cancellationToken);
     }
 }

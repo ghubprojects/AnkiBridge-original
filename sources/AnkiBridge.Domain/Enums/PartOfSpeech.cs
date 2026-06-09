@@ -8,6 +8,11 @@ public enum PartOfSpeech
     Adjective,
     Adverb,
 
+    // Multi-word expressions
+    Collocation,
+    Idiom,
+    Phrase,
+
     // Function words
     Pronoun,
     Determiner,
@@ -22,11 +27,6 @@ public enum PartOfSpeech
     // Numbers
     Number,
     OrdinalNumber,
-
-    // Multi-word expressions
-    Collocation,
-    Idiom,
-    Phrase,
 
     // Word formation
     Prefix,

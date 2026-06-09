@@ -2,4 +2,4 @@ using AnkiBridge.Application.Common.IntegrationEvents;
 
 namespace AnkiBridge.Application.Features.Flashcard.IntegrationEvents;
 
-public sealed record AnkiNotesExportStartedIntegrationEvent(IReadOnlyList<Guid> AnkiNoteIds) : IntegrationEvent;
+public sealed record NotesExportStartedIntegrationEvent(IReadOnlyList<Guid> AnkiNoteIds) : IntegrationEvent;

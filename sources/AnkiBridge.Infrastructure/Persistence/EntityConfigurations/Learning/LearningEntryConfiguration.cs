@@ -49,13 +49,27 @@ public sealed class LearningEntryConfiguration : IEntityTypeConfiguration<Learni
             .IsRequired()
             .HasMaxLength(500);
 
+        builder.Property(x => x.TranslationSource)
+            .IsRequired()
+            .HasConversion<string>()
+            .HasMaxLength(20);
+
         builder.Property(x => x.Translation)
             .IsRequired()
             .HasMaxLength(100);
 
-        // Media
+        builder.Property(x => x.AudioSource)
+            .IsRequired(false)
+            .HasConversion<string>()
+            .HasMaxLength(20);
+
         builder.Property(x => x.AudioPath)
             .HasMaxLength(500);
+
+        builder.Property(x => x.ImageSource)
+            .IsRequired(false)
+            .HasConversion<string>()
+            .HasMaxLength(20);
 
         builder.Property(x => x.ImagePath)
             .HasMaxLength(500);
@@ -77,7 +91,6 @@ public sealed class LearningEntryConfiguration : IEntityTypeConfiguration<Learni
             .IsRequired();
 
         builder.Property(x => x.LastModifiedAt);
-
         builder.Property(x => x.LastModifiedBy);
 
         // Soft Delete
@@ -86,7 +99,6 @@ public sealed class LearningEntryConfiguration : IEntityTypeConfiguration<Learni
             .HasDefaultValue(false);
 
         builder.Property(x => x.DeletedAt);
-
         builder.Property(x => x.DeletedBy);
 
         builder.HasQueryFilter(x => !x.IsDeleted);

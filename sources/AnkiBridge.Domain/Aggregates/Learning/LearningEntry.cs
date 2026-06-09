@@ -6,168 +6,224 @@ namespace AnkiBridge.Domain.Aggregates.Learning;
 
 public sealed class LearningEntry : AggregateRoot<Guid>, IAuditableEntity, ISoftDeleteEntity
 {
-    // References
     public Guid? DictionaryEntryId { get; private set; }
 
-    // Core vocabulary
     public string Headword { get; private set; } = default!;
     public PartOfSpeech PartOfSpeech { get; private set; }
-    public string Ipa { get; private set; } = default!;
-    public Accent Accent { get; private set; }
-
-    // Learning content
     public string Cloze { get; private set; } = default!;
     public string Definition { get; private set; } = default!;
-    public string Translation { get; private set; } = default!;
 
-    // Media
-    public string? AudioPath { get; private set; }
-    public string? ImagePath { get; private set; }
-
-    // Examples
     private readonly List<LearningExample> _examples = [];
     public IReadOnlyCollection<LearningExample> Examples => _examples.AsReadOnly();
 
-    #region Audit
+    public TranslationSource TranslationSource { get; private set; }
+    public string Translation { get; private set; } = default!;
 
+    public Accent Accent { get; private set; }
+    public string Ipa { get; private set; } = default!;
+    public AudioSource? AudioSource { get; private set; }
+    public string? AudioPath { get; private set; }
+
+    public ImageSource? ImageSource { get; private set; }
+    public string? ImagePath { get; private set; }
+
+    #region Audit
     public DateTimeOffset CreatedAt { get; }
     public Guid CreatedBy { get; }
     public DateTimeOffset? LastModifiedAt { get; }
     public Guid? LastModifiedBy { get; }
-
     #endregion
 
     #region Soft Delete
-
     public bool IsDeleted { get; }
     public DateTimeOffset? DeletedAt { get; }
     public Guid? DeletedBy { get; }
-
     #endregion
 
     private LearningEntry() { }
 
     private LearningEntry(
+        Guid? dictionaryEntryId,
         string headword,
         PartOfSpeech partOfSpeech,
-        string ipa,
-        Accent accent,
         string cloze,
         string definition,
+        TranslationSource translationSource,
         string translation,
-        IEnumerable<(Guid? Id, string Text)> examples,
+        Accent accent,
+        string ipa,
+        AudioSource? audioSource,
         string? audioPath,
-        string? imagePath,
-        Guid? dictionaryEntryId)
+        ImageSource? imageSource,
+        string? imagePath)
     {
         Id = Guid.CreateVersion7();
-        DictionaryEntryId = dictionaryEntryId;
 
+        DictionaryEntryId = dictionaryEntryId;
         Headword = headword;
         PartOfSpeech = partOfSpeech;
-        Ipa = ipa;
-        Accent = accent;
-
         Cloze = cloze;
         Definition = definition;
+
+        TranslationSource = translationSource;
         Translation = translation;
 
+        Accent = accent;
+        Ipa = ipa;
+        AudioSource = audioSource;
         AudioPath = audioPath;
-        ImagePath = imagePath;
 
-        UpsertExamples(examples);
+        ImageSource = imageSource;
+        ImagePath = imagePath;
     }
 
-    public static LearningEntry Create(
+    public static Result<LearningEntry> Create(
+        Guid? dictionaryEntryId,
         string headword,
         PartOfSpeech partOfSpeech,
-        string ipa,
-        Accent accent,
         string cloze,
         string definition,
-        string translation,
         IEnumerable<string> examples,
+        TranslationSource translationSource,
+        string translation,
+        Accent accent,
+        string ipa,
+        AudioSource? audioSource = null,
         string? audioPath = null,
-        string? imagePath = null,
-        Guid? dictionaryEntryId = null)
+        ImageSource? imageSource = null,
+        string? imagePath = null)
     {
-        return new LearningEntry(
-            headword,
+        if (string.IsNullOrWhiteSpace(headword)) return Result.Failure<LearningEntry>("Headword must not be empty.");
+        if (string.IsNullOrWhiteSpace(cloze)) return Result.Failure<LearningEntry>("Cloze must not be empty.");
+        if (string.IsNullOrWhiteSpace(definition)) return Result.Failure<LearningEntry>("Definition must not be empty.");
+        if (string.IsNullOrWhiteSpace(translation)) return Result.Failure<LearningEntry>("Translation must not be empty.");
+
+        var entry = new LearningEntry(
+            dictionaryEntryId,
+            headword.Trim(),
             partOfSpeech,
-            ipa,
+            cloze.Trim(),
+            definition.Trim(),
+            translationSource,
+            translation.Trim(),
             accent,
-            cloze,
-            definition,
-            translation,
-            examples.Select(x => ((Guid?)null, x)),
-            audioPath,
-            imagePath,
-            dictionaryEntryId);
+            ipa.Trim(),
+            audioSource,
+            audioPath?.Trim(),
+            imageSource,
+            imagePath?.Trim());
+
+        var newExamples = examples.Select(x => ((Guid?)null, x));
+
+        var upsertResult = entry.UpsertExamples(newExamples);
+        if (upsertResult.IsFailure)
+            return upsertResult.ToFailure<LearningEntry>();
+
+        return entry;
+    }
+
+    public void SetAudioFromDictionary(string? relativePath)
+    {
+        AudioSource = Enums.AudioSource.User;
+        AudioPath = relativePath?.Trim();
+    }
+
+    public string PrepareUserAudioProcessing(string originalFileName)
+    {
+        AudioSource = Enums.AudioSource.User;
+        // Đặt một path đích an toàn dựa trên Id của thực thể để lưu tạm vào DB
+        AudioPath = $"learning-entries/{Id}/audios/{Guid.NewGuid()}_{originalFileName}";
+        return AudioPath;
+    }
+
+    public void SetImageFromDictionary(string? relativePath)
+    {
+        ImageSource = Enums.ImageSource.User;
+        ImagePath = relativePath?.Trim();
+    }
+
+    public string PrepareUserImageProcessing(string originalFileName)
+    {
+        ImageSource = Enums.ImageSource.User;
+        // Đặt một path đích an toàn dựa trên Id của thực thể để lưu tạm vào DB
+        ImagePath = $"learning-entries/{Id}/images/{Guid.NewGuid()}_{originalFileName}";
+        return ImagePath;
     }
 
     public Result Update(
+        Guid? dictionaryEntryId,
         string headword,
         PartOfSpeech partOfSpeech,
-        string ipa,
-        Accent accent,
         string cloze,
         string definition,
-        string translation,
         IEnumerable<(Guid? Id, string Text)> examples,
+        TranslationSource translationSource,
+        string translation,
+        Accent accent,
+        string ipa,
+        AudioSource? audioSource = null,
         string? audioPath = null,
-        string? imagePath = null,
-        Guid? dictionaryEntryId = null)
+        ImageSource? imageSource = null,
+        string? imagePath = null)
     {
+        if (string.IsNullOrWhiteSpace(headword)) return Result.Failure("Headword must not be empty.");
+        if (string.IsNullOrWhiteSpace(cloze)) return Result.Failure("Cloze must not be empty.");
+        if (string.IsNullOrWhiteSpace(definition)) return Result.Failure("Definition must not be empty.");
+        if (string.IsNullOrWhiteSpace(translation)) return Result.Failure("Translation must not be empty.");
+
+        var upsertResult = UpsertExamples(examples);
+        if (upsertResult.IsFailure)
+            return upsertResult;
+
         DictionaryEntryId = dictionaryEntryId;
-
-        Headword = headword;
+        Headword = headword.Trim();
         PartOfSpeech = partOfSpeech;
-        Ipa = ipa;
+        Cloze = cloze.Trim();
+        Definition = definition.Trim();
+
+        TranslationSource = translationSource;
+        Translation = translation.Trim();
+
         Accent = accent;
+        Ipa = ipa.Trim();
+        AudioSource = audioSource;
+        AudioPath = audioPath?.Trim();
 
-        Cloze = cloze;
-        Definition = definition;
-        Translation = translation;
-
-        AudioPath = audioPath;
-        ImagePath = imagePath;
-
-        UpsertExamples(examples);
+        ImageSource = imageSource;
+        ImagePath = imagePath?.Trim();
 
         return Result.Success();
     }
 
-    public void SetAudioPath(string? audioPath)
+    private Result UpsertExamples(IEnumerable<(Guid? Id, string Text)> examples)
     {
-        AudioPath = audioPath;
-    }
+        var incoming = examples.ToList();
 
-    public void SetImagePath(string? imagePath)
-    {
-        ImagePath = imagePath;
-    }
-
-    private void UpsertExamples(IEnumerable<(Guid? Id, string Text)> examples)
-    {
-        var examplesById = examples
+        var examplesById = incoming
             .Where(ne => ne.Id.HasValue)
             .ToDictionary(ne => ne.Id!.Value, ne => ne.Text);
 
-        // Remove examples that are not in the new list
         _examples.RemoveAll(e => !examplesById.ContainsKey(e.Id));
 
-        // Update existing examples
         foreach (var existing in _examples)
         {
-            if (examplesById.TryGetValue(existing.Id, out var newText))
-                existing.UpdateText(newText);
+            if (!examplesById.TryGetValue(existing.Id, out var newText))
+                continue;
+
+            var updateResult = existing.UpdateText(newText);
+            if (updateResult.IsFailure)
+                return updateResult;
         }
 
-        // Add new examples
-        var newExamples = examples
-            .Where(ne => !ne.Id.HasValue)
-            .Select(ne => LearningExample.Create(ne.Text));
+        foreach (var ne in incoming.Where(ne => !ne.Id.HasValue))
+        {
+            var createResult = LearningExample.Create(ne.Text);
+            if (createResult.IsFailure)
+                return Result.Failure(createResult.Error.Message);
 
-        _examples.AddRange(newExamples);
+            _examples.Add(createResult.Value);
+        }
+
+        return Result.Success();
     }
 }
