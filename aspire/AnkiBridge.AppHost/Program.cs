@@ -2,6 +2,8 @@ using Projects;
 
 var builder = DistributedApplication.CreateBuilder(args);
 
+builder.AddDockerComposeEnvironment("compose");
+
 //var redis = builder.AddRedis("redis");
 
 var postgres = builder.AddPostgres("postgres")
