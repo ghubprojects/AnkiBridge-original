@@ -1,8 +1,6 @@
-﻿@using Humanizer
+@using Humanizer
 
-<FluentBadge Appearance="Appearance.Neutral"
-             BackgroundColor="@BackgroundColor"
-             Fill="highlight"
-             Color="#fff">
+<span class="@CssClass" role="status">
+    <span class="status-dot" aria-hidden="true"></span>
     @Status.ToString().Humanize()
-</FluentBadge>
+</span>

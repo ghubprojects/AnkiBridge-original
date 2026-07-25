@@ -32,6 +32,22 @@ public partial class NoteList
             _ => Status
         };
 
+        SelectedGridItemIds.Clear();
+        await RefreshDataAsync();
+    }
+
+    private async Task ApplyFiltersAsync()
+    {
+        SelectedGridItemIds.Clear();
+        await RefreshDataAsync();
+    }
+
+    private async Task ClearFiltersAsync()
+    {
+        Headword = string.Empty;
+        NoteType = string.Empty;
+        Deck = string.Empty;
+        SelectedGridItemIds.Clear();
         await RefreshDataAsync();
     }
 
@@ -99,11 +115,8 @@ public partial class NoteList
                 .Match(
                     async () =>
                     {
-                        ToastService.ShowSuccess(
-                            "The notes are being exported to Anki.",
-                            10000,
-                            "View",
-                            EventCallback.Factory.Create<ToastResult>(this, GoToProcessingTab));
+                        SelectedGridItemIds.Clear();
+                        ToastService.ShowSuccess("Export started. Refresh the list to monitor its status.");
                         await RefreshDataAsync();
                     },
                     error => DialogService.ShowErrorAsync(error.Message));
@@ -114,9 +127,6 @@ public partial class NoteList
             await InvokeAsync(StateHasChanged);
         }
     }
-
-    private void GoToProcessingTab()
-        => Navigation.NavigateTo("/flashcard/notes/processing");
 
     public enum AnkiNoteExportStatus
     {

@@ -12,6 +12,9 @@ public sealed class DictionaryTranslationConfiguration : IEntityTypeConfiguratio
 
         builder.HasKey(x => x.Id);
 
+        builder.Property(x => x.Id)
+            .ValueGeneratedNever();
+
         builder.Property<Guid>("DictionaryEntryId").IsRequired();
 
         builder.Property(x => x.Text)

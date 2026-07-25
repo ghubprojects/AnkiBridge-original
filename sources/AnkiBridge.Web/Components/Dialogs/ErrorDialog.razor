@@ -1,32 +1,25 @@
-﻿@rendermode InteractiveServer
-
-@using System.Net
+@rendermode InteractiveServer
 
 <FluentDialog>
     <FluentDialogHeader>
-        <FluentStack VerticalAlignment="VerticalAlignment.Center">
-            <FluentIcon Value="@(new Icons.Regular.Size32.DismissCircle())" Color="@Color.Error" />
-            <FluentLabel Typo="Typography.PaneHeader">
-                Error
-            </FluentLabel>
+        <FluentStack VerticalAlignment="VerticalAlignment.Center" HorizontalGap="10">
+            <FluentIcon Value="@(new Icons.Regular.Size24.DismissCircle())" Color="Color.Error" />
+            <FluentLabel Typo="Typography.PaneHeader">Something went wrong</FluentLabel>
         </FluentStack>
     </FluentDialogHeader>
 
     <FluentDialogBody>
-        <FluentStack VerticalGap="12" Orientation="Orientation.Vertical">
-            <FluentLabel Typo="Typography.H6">
-                @Message
-            </FluentLabel>
-            <FluentLabel Typo="Typography.Body">
-                For more information, contact your system administrator.
-            </FluentLabel>
-        </FluentStack>
+        <p class="error-summary">AnkiBridge could not complete the current operation.</p>
+        <div class="error-message">@Message</div>
+        <p class="error-guidance">Reload the page and try again. Your previously saved data is not affected.</p>
     </FluentDialogBody>
 
     <FluentDialogFooter>
-        <FluentStack HorizontalAlignment="HorizontalAlignment.Center">
-            <FluentButton Appearance="Appearance.Accent" OnClick="HandleRefresh">
-                Try again
+        <FluentStack HorizontalAlignment="HorizontalAlignment.Right">
+            <FluentButton Appearance="Appearance.Accent"
+                          IconStart="@(new Icons.Regular.Size20.ArrowClockwise())"
+                          OnClick="HandleRefresh">
+                Reload page
             </FluentButton>
         </FluentStack>
     </FluentDialogFooter>

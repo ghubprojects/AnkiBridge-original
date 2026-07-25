@@ -1,8 +1,8 @@
-﻿using AnkiBridge.Domain.Enums;
+using AnkiBridge.Domain.Enums;
 
 namespace AnkiBridge.Application.Features.Dictionary.Contracts.QueryServices.Models;
 
 public sealed record DictionaryEntryDetailTranslation(
-    TranslationSource Source,
-    string Text
+    string Text,
+    TranslationSource Source
 );

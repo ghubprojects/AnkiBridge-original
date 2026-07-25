@@ -15,6 +15,7 @@ public sealed class DictionaryImage : Entity<Guid>
 
     private DictionaryImage(string url, ImageSource source)
     {
+        Id = Guid.CreateVersion7();
         Url = url;
         Source = source;
     }

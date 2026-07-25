@@ -23,9 +23,13 @@ public sealed class LearningEntry : AggregateRoot<Guid>, IAuditableEntity, ISoft
     public string Ipa { get; private set; } = default!;
     public AudioSource? AudioSource { get; private set; }
     public string? AudioPath { get; private set; }
+    public UploadStatus AudioUploadStatus { get; private set; }
+    public string? AudioUploadError { get; private set; }
 
     public ImageSource? ImageSource { get; private set; }
     public string? ImagePath { get; private set; }
+    public UploadStatus ImageUploadStatus { get; private set; }
+    public string? ImageUploadError { get; private set; }
 
     #region Audit
     public DateTimeOffset CreatedAt { get; }
@@ -72,9 +76,19 @@ public sealed class LearningEntry : AggregateRoot<Guid>, IAuditableEntity, ISoft
         Ipa = ipa;
         AudioSource = audioSource;
         AudioPath = audioPath;
+        AudioUploadStatus = audioSource is null
+            ? UploadStatus.NotStarted
+            : string.IsNullOrWhiteSpace(audioPath)
+                ? UploadStatus.NotStarted
+                : UploadStatus.Success;
 
         ImageSource = imageSource;
         ImagePath = imagePath;
+        ImageUploadStatus = imageSource is null
+            ? UploadStatus.NotStarted
+            : string.IsNullOrWhiteSpace(imagePath)
+                ? UploadStatus.NotStarted
+                : UploadStatus.Success;
     }
 
     public static Result<LearningEntry> Create(
@@ -122,32 +136,60 @@ public sealed class LearningEntry : AggregateRoot<Guid>, IAuditableEntity, ISoft
         return entry;
     }
 
-    public void SetAudioFromDictionary(string? relativePath)
+    public void QueueAudioUpload(AudioSource source)
     {
-        AudioSource = Enums.AudioSource.User;
-        AudioPath = relativePath?.Trim();
+        AudioSource = source;
+        AudioPath = null;
+        AudioUploadStatus = UploadStatus.NotStarted;
+        AudioUploadError = null;
     }
 
-    public string PrepareUserAudioProcessing(string originalFileName)
+    public void BeginAudioUpload()
     {
-        AudioSource = Enums.AudioSource.User;
-        // Đặt một path đích an toàn dựa trên Id của thực thể để lưu tạm vào DB
-        AudioPath = $"learning-entries/{Id}/audios/{Guid.NewGuid()}_{originalFileName}";
-        return AudioPath;
+        AudioUploadStatus = UploadStatus.Processing;
+        AudioUploadError = null;
     }
 
-    public void SetImageFromDictionary(string? relativePath)
+    public void CompleteAudioUpload(string blobUri)
     {
-        ImageSource = Enums.ImageSource.User;
-        ImagePath = relativePath?.Trim();
+        ArgumentException.ThrowIfNullOrWhiteSpace(blobUri);
+        AudioPath = blobUri.Trim();
+        AudioUploadStatus = UploadStatus.Success;
+        AudioUploadError = null;
     }
 
-    public string PrepareUserImageProcessing(string originalFileName)
+    public void MarkAudioUploadFailed(string error)
     {
-        ImageSource = Enums.ImageSource.User;
-        // Đặt một path đích an toàn dựa trên Id của thực thể để lưu tạm vào DB
-        ImagePath = $"learning-entries/{Id}/images/{Guid.NewGuid()}_{originalFileName}";
-        return ImagePath;
+        AudioUploadStatus = UploadStatus.Failed;
+        AudioUploadError = error;
+    }
+
+    public void QueueImageUpload(ImageSource source)
+    {
+        ImageSource = source;
+        ImagePath = null;
+        ImageUploadStatus = UploadStatus.NotStarted;
+        ImageUploadError = null;
+    }
+
+    public void BeginImageUpload()
+    {
+        ImageUploadStatus = UploadStatus.Processing;
+        ImageUploadError = null;
+    }
+
+    public void CompleteImageUpload(string blobUri)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(blobUri);
+        ImagePath = blobUri.Trim();
+        ImageUploadStatus = UploadStatus.Success;
+        ImageUploadError = null;
+    }
+
+    public void MarkImageUploadFailed(string error)
+    {
+        ImageUploadStatus = UploadStatus.Failed;
+        ImageUploadError = error;
     }
 
     public Result Update(
@@ -188,9 +230,21 @@ public sealed class LearningEntry : AggregateRoot<Guid>, IAuditableEntity, ISoft
         Ipa = ipa.Trim();
         AudioSource = audioSource;
         AudioPath = audioPath?.Trim();
+        AudioUploadStatus = audioSource is null
+            ? UploadStatus.NotStarted
+            : string.IsNullOrWhiteSpace(audioPath)
+                ? UploadStatus.NotStarted
+                : UploadStatus.Success;
+        AudioUploadError = null;
 
         ImageSource = imageSource;
         ImagePath = imagePath?.Trim();
+        ImageUploadStatus = imageSource is null
+            ? UploadStatus.NotStarted
+            : string.IsNullOrWhiteSpace(imagePath)
+                ? UploadStatus.NotStarted
+                : UploadStatus.Success;
+        ImageUploadError = null;
 
         return Result.Success();
     }
@@ -210,7 +264,7 @@ public sealed class LearningEntry : AggregateRoot<Guid>, IAuditableEntity, ISoft
             if (!examplesById.TryGetValue(existing.Id, out var newText))
                 continue;
 
-            var updateResult = existing.UpdateText(newText);
+            var updateResult = existing.Update(newText);
             if (updateResult.IsFailure)
                 return updateResult;
         }

@@ -33,6 +33,8 @@ public sealed class LearningEntryQueryService(
                     x.PartOfSpeech,
                     x.Ipa,
                     x.Translation,
+                    x.AudioUploadStatus,
+                    x.ImageUploadStatus,
                     x.CreatedAt),
                 cancellationToken);
     }

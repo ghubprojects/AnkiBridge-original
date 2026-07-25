@@ -4,6 +4,7 @@ using AnkiBridge.Infrastructure.Persistence.Abstractions;
 using AnkiBridge.Infrastructure.Persistence.DatabaseContext;
 using AnkiBridge.Infrastructure.Persistence.Seeding.Helpers;
 using AnkiBridge.Infrastructure.Persistence.Seeding.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace AnkiBridge.Infrastructure.Persistence.Seeding.Seeders;
 
@@ -17,6 +18,18 @@ public sealed class LearningSeeder : IDbSeeder
 
         foreach (var seed in seeds)
         {
+            var exists = await context.LearningEntries
+                .IgnoreQueryFilters()
+                .AnyAsync(x =>
+                    x.Headword == seed.Headword
+                    && x.PartOfSpeech == seed.PartOfSpeech
+                    && x.Accent == seed.Accent
+                    && x.Definition == seed.Definition,
+                    cancellationToken);
+
+            if (exists)
+                continue;
+
             // 1. Gọi hàm Create theo đúng thứ tự tham số mới của Domain
             var result = LearningEntry.Create(
                 seed.DictionaryEntryId,
@@ -28,7 +41,11 @@ public sealed class LearningSeeder : IDbSeeder
                 TranslationSource.Google, // Mặc định nguồn dịch cho dữ liệu seed
                 seed.Translation,
                 seed.Accent,
-                seed.Ipa
+                seed.Ipa,
+                string.IsNullOrWhiteSpace(seed.AudioPath) ? null : AudioSource.Unknown,
+                seed.AudioPath,
+                string.IsNullOrWhiteSpace(seed.ImagePath) ? null : ImageSource.Unknown,
+                seed.ImagePath
             );
 
             if (result.IsFailure)
@@ -37,20 +54,7 @@ public sealed class LearningSeeder : IDbSeeder
                 continue;
             }
 
-            var learningEntry = result.Value;
-
-            // 2. Sử dụng các phương thức Domain mới để mapping chính xác Media Path và Source ban đầu
-            if (!string.IsNullOrWhiteSpace(seed.AudioPath))
-            {
-                learningEntry.SetAudioFromDictionary(seed.AudioPath);
-            }
-
-            if (!string.IsNullOrWhiteSpace(seed.ImagePath))
-            {
-                learningEntry.SetImageFromDictionary(seed.ImagePath);
-            }
-
-            await context.LearningEntries.AddAsync(learningEntry, cancellationToken);
+            await context.LearningEntries.AddAsync(result.Value, cancellationToken);
         }
     }
 }

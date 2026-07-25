@@ -64,6 +64,16 @@ public sealed class LearningEntryConfiguration : IEntityTypeConfiguration<Learni
             .HasMaxLength(20);
 
         builder.Property(x => x.AudioPath)
+            .IsRequired(false)
+            .HasMaxLength(500);
+
+        builder.Property(x => x.AudioUploadStatus)
+            .IsRequired()
+            .HasConversion<string>()
+            .HasMaxLength(20);
+
+        builder.Property(x => x.AudioUploadError)
+            .IsRequired(false)
             .HasMaxLength(500);
 
         builder.Property(x => x.ImageSource)
@@ -72,6 +82,16 @@ public sealed class LearningEntryConfiguration : IEntityTypeConfiguration<Learni
             .HasMaxLength(20);
 
         builder.Property(x => x.ImagePath)
+            .IsRequired(false)
+            .HasMaxLength(500);
+
+        builder.Property(x => x.ImageUploadStatus)
+            .IsRequired()
+            .HasConversion<string>()
+            .HasMaxLength(20);
+
+        builder.Property(x => x.ImageUploadError)
+            .IsRequired(false)
             .HasMaxLength(500);
 
         // Examples

@@ -50,14 +50,15 @@ public sealed class CreateLearningEntryCommandValidator : AbstractValidator<Crea
         RuleFor(x => x.AudioSource)
             .IsInEnum().When(x => x.AudioSource.HasValue).WithMessage("Invalid Audio Source.");
 
-        // Nếu nguồn từ Dictionary -> Bắt buộc phải có đường dẫn tương đối (Relative Path) từ API trả về
-        RuleFor(x => x.AudioRelativePath)
-            .NotEmpty().WithMessage("Audio relative path is required when source is Dictionary.")
-            .When(x => x.AudioSource == AudioSource.User);
+        RuleFor(x => x.AudioSourceUrl)
+            .NotEmpty().WithMessage("Audio source URL is required.")
+            .Must(BeHttpUrl).WithMessage("Audio source URL must use HTTP or HTTPS.")
+            .When(x => x.AudioSource.HasValue && x.AudioSource != AudioSource.User);
 
-        // Nếu nguồn từ User Upload -> Bắt buộc phải có đường dẫn tuyệt đối (Absolute Path) tới thư mục tạm trên Server
         RuleFor(x => x.AudioAbsolutePath)
-            .NotEmpty().WithMessage("Audio file preview/temp path is required for upload.")
+            .NotEmpty().WithMessage("Audio local path is required for upload.")
+            .Must(path => path is not null && Path.IsPathFullyQualified(path))
+            .WithMessage("Audio local path must be absolute.")
             .When(x => x.AudioSource == AudioSource.User);
 
         RuleFor(x => x.AudioFileName)
@@ -65,23 +66,36 @@ public sealed class CreateLearningEntryCommandValidator : AbstractValidator<Crea
             .MaximumLength(255).WithMessage("Audio file name is too long.")
             .When(x => x.AudioSource == AudioSource.User);
 
+        RuleFor(x => x.AudioContentType)
+            .MaximumLength(100).WithMessage("Audio content type is too long.");
+
         // ── IMAGE OUTBOX DATA VALIDATION ────────────────────────────────────
         RuleFor(x => x.ImageSource)
             .IsInEnum().When(x => x.ImageSource.HasValue).WithMessage("Invalid Image Source.");
 
-        // Nếu nguồn từ Dictionary -> Bắt buộc có Relative Path
-        RuleFor(x => x.ImageRelativePath)
-            .NotEmpty().WithMessage("Image relative path is required when source is Dictionary.")
-            .When(x => x.ImageSource == ImageSource.User);
+        RuleFor(x => x.ImageSourceUrl)
+            .NotEmpty().WithMessage("Image source URL is required.")
+            .Must(BeHttpUrl).WithMessage("Image source URL must use HTTP or HTTPS.")
+            .When(x => x.ImageSource.HasValue && x.ImageSource != ImageSource.User);
 
-        // Nếu nguồn từ User Upload -> Bắt buộc có Absolute Path (đường dẫn file tạm) để Outbox Worker lấy đem đi upload thực sự
         RuleFor(x => x.ImageAbsolutePath)
-            .NotEmpty().WithMessage("Image file preview/temp path is required for upload.")
+            .NotEmpty().WithMessage("Image local path is required for upload.")
+            .Must(path => path is not null && Path.IsPathFullyQualified(path))
+            .WithMessage("Image local path must be absolute.")
             .When(x => x.ImageSource == ImageSource.User);
 
         RuleFor(x => x.ImageFileName)
             .NotEmpty().WithMessage("Image file name is required.")
             .MaximumLength(255).WithMessage("Image file name is too long.")
             .When(x => x.ImageSource == ImageSource.User);
+
+        RuleFor(x => x.ImageContentType)
+            .MaximumLength(100).WithMessage("Image content type is too long.");
+    }
+
+    private static bool BeHttpUrl(string? value)
+    {
+        return Uri.TryCreate(value, UriKind.Absolute, out var uri)
+            && (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps);
     }
 }

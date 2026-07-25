@@ -4,6 +4,8 @@
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <RequiresAspNetWebAssets>true</RequiresAspNetWebAssets>
+    <UserSecretsId>53e38011-d8ec-4a11-9556-84fb2e83a371</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>
@@ -13,10 +15,6 @@
     <ProjectReference Include="..\AnkiBridge.Shared\AnkiBridge.Shared.csproj" />
     <PackageReference Include="Microsoft.FluentUI.AspNetCore.Components" Version="4.14.1" />
     <PackageReference Include="Microsoft.FluentUI.AspNetCore.Components.Icons" Version="4.14.1" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <PackageReference Include="Aspire.StackExchange.Redis.OutputCaching" Version="13.3.0" />
   </ItemGroup>
 
 </Project>

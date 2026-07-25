@@ -7,6 +7,8 @@ public sealed class LearningExample : Entity<Guid>
 {
     public string Text { get; private set; } = default!;
 
+    #region Constructor
+
     private LearningExample() { }
 
     private LearningExample(string text)
@@ -15,22 +17,29 @@ public sealed class LearningExample : Entity<Guid>
         Text = text;
     }
 
+    #endregion
+
+    #region Behavior Methods
+
     internal static Result<LearningExample> Create(string text)
     {
         if (string.IsNullOrWhiteSpace(text))
-            return Result.Failure<LearningExample>("Example text cannot be empty.");
+            return Result.Failure<LearningExample>("Example text must not be empty.");
 
         return new LearningExample(text.Trim());
     }
 
-    internal Result UpdateText(string newText)
+    internal Result Update(string text)
     {
-        if (string.IsNullOrWhiteSpace(newText))
-            return Result.Failure("Example text cannot be empty.");
+        if (string.IsNullOrWhiteSpace(text))
+            return Result.Failure("Example text must not be empty.");
 
-        if (Text != newText)
-            Text = newText.Trim();
+        var trimmed = text.Trim();
+        if (Text != trimmed)
+            Text = trimmed;
 
         return Result.Success();
     }
+
+    #endregion
 }

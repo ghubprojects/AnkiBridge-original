@@ -1,4 +1,4 @@
-﻿@page "/flashcard/notes"
+@page "/flashcard/notes"
 @rendermode InteractiveServer
 @inherits GridPageComponentBase<NoteGridItem, Guid>
 
@@ -7,328 +7,143 @@
 @using AnkiBridge.Web.Features.Flashcard.Models
 @using Humanizer
 
-<PageTitle>Notes - AnkiBridge</PageTitle>
+<PageTitle>Anki notes - AnkiBridge</PageTitle>
 
-<h3>Notes</h3>
-
-<div class="wrapper">
-    <FluentToolbar Orientation="Orientation.Horizontal">
-        <div class="toolbar-button-group">
-            <FluentButton OnClick="RefreshDataAsync"
-                          Loading="@IsRefreshing"
-                          IconStart="@(new Icons.Regular.Size20.ArrowClockwise())">
-                Refresh
-            </FluentButton>
+<main class="notes-page">
+    <header class="page-header">
+        <div>
+            <span class="breadcrumb">Flashcards / Anki notes</span>
+            <h1>Anki notes</h1>
+            <p>Review prepared notes, track their export status and send selected items to Anki.</p>
         </div>
+    </header>
 
-        <FluentDivider Orientation="Orientation.Vertical" Style="height: 20px;" />
-
-        <div class="toolbar-button-group">
-            <FluentButton Disabled="@(!IsSingleItemSelected)"
-                          IconStart="@(new Icons.Regular.Size20.Eye())">
-                View
-            </FluentButton>
-            <FluentButton Disabled="@(!IsSingleItemSelected)"
-                          IconStart="@(new Icons.Regular.Size20.Edit())">
-                Edit
-            </FluentButton>
-        </div>
-
-        <FluentDivider Orientation="Orientation.Vertical" Style="height: 20px;" />
-
-        <div class="toolbar-button-group" style="display:flex">
+    <section class="notes-card" aria-label="Anki notes">
+        <div class="command-bar">
+            <div class="command-group">
+                <FluentButton OnClick="RefreshDataAsync"
+                              Loading="@IsRefreshing"
+                              IconStart="@(new Icons.Regular.Size20.ArrowClockwise())">
+                    Refresh
+                </FluentButton>
+                <span class="selection-count" aria-live="polite">
+                    @(HasAnyItemSelected ? $"{SelectedGridItemIds.Count} selected" : "Select notes to export")
+                </span>
+            </div>
             <FluentButton OnClick="ExportToAnkiAsync"
                           Loading="@IsExporting"
                           Disabled="@(!HasAnyItemSelected)"
-                          Appearance="Appearance.Stealth"
+                          Appearance="Appearance.Accent"
                           IconStart="@(new Icons.Regular.Size20.ArrowExport())">
                 Export to Anki
             </FluentButton>
-            <FluentButton Disabled="@(!HasAnyItemSelected)"
-                          IconStart="@(new Icons.Regular.Size20.Delete())">
-                Delete
+        </div>
+
+        <div class="status-tabs">
+            <FluentTabs OnTabChange="HandleTabChangeAsync" Size="TabSize.Medium">
+                <FluentTab Id="@AnkiNoteExportStatus.All.ToString()"
+                           Label="@AnkiNoteExportStatus.All.ToString().Humanize()" />
+                <FluentTab Id="@AnkiNoteExportStatus.NotStarted.ToString()"
+                           Label="@AnkiNoteExportStatus.NotStarted.ToString().Humanize()" />
+                <FluentTab Id="@AnkiNoteExportStatus.Processing.ToString()"
+                           Label="@AnkiNoteExportStatus.Processing.ToString().Humanize()" />
+                <FluentTab Id="@AnkiNoteExportStatus.Success.ToString()"
+                           Label="@AnkiNoteExportStatus.Success.ToString().Humanize()" />
+                <FluentTab Id="@AnkiNoteExportStatus.Failed.ToString()"
+                           Label="@AnkiNoteExportStatus.Failed.ToString().Humanize()" />
+            </FluentTabs>
+        </div>
+
+        <div class="filter-bar" role="search" aria-label="Filter Anki notes">
+            <FluentSearch @bind-Value="Headword"
+                          @bind-Value:after="ApplyFiltersAsync"
+                          Immediate="true"
+                          ImmediateDelay="400"
+                          Placeholder="Filter by headword"
+                          AriaLabel="Filter by headword" />
+            <FluentSearch @bind-Value="NoteType"
+                          @bind-Value:after="ApplyFiltersAsync"
+                          Immediate="true"
+                          ImmediateDelay="400"
+                          Placeholder="Filter by note type"
+                          AriaLabel="Filter by note type" />
+            <FluentSearch @bind-Value="Deck"
+                          @bind-Value:after="ApplyFiltersAsync"
+                          Immediate="true"
+                          ImmediateDelay="400"
+                          Placeholder="Filter by deck"
+                          AriaLabel="Filter by deck" />
+            <FluentButton OnClick="ClearFiltersAsync"
+                          Appearance="Appearance.Stealth"
+                          IconStart="@(new Icons.Regular.Size20.Dismiss())">
+                Clear filters
             </FluentButton>
         </div>
-    </FluentToolbar>
 
-    <FluentDivider Orientation="Orientation.Horizontal" />
+        <div class="grid-shell">
+            <FluentDataGrid TGridItem="NoteGridItem"
+                            @ref="@dataGrid"
+                            Items="@GridItems"
+                            Pagination="@pagination"
+                            Loading="@IsRefreshing"
+                            RefreshItems="RefreshItemsAsync"
+                            DisplayMode="DataGridDisplayMode.Table"
+                            GenerateHeader="GenerateHeaderOption.Sticky"
+                            AutoFit="true"
+                            ShowHover="true">
+                <ChildContent>
+                    <SelectColumn TGridItem="NoteGridItem"
+                                  SelectMode="DataGridSelectMode.Multiple"
+                                  Property="@(x => SelectedGridItemIds.Contains(x.Id))"
+                                  OnSelect="HandleSelectItem"
+                                  SelectAll="@(GridItems.All(i => SelectedGridItemIds.Contains(i.Id)))"
+                                  SelectAllChanged="HandleSelectAllChanged" />
+                    <PropertyColumn Title="Headword" Property="@(x => x.Headword)" />
+                    <PropertyColumn Title="Deck" Property="@(x => x.Deck)" />
+                    <PropertyColumn Title="Note type" Property="@(x => x.NoteType)" />
+                    <TemplateColumn Title="Status" Context="note">
+                        <ExportStatusBadge Status="@(note.ExportStatus)" />
+                    </TemplateColumn>
+                    <PropertyColumn Title="Created" Property="@(x => x.CreatedDate)" Format="MMM dd, yyyy" />
+                </ChildContent>
+                <EmptyContent>
+                    <div class="empty-state">
+                        <div class="empty-icon"><FluentIcon Value="@(new Icons.Regular.Size20.SlideText())" /></div>
+                        <strong>No notes found</strong>
+                        <span>Create notes from the learning library or adjust the current filters.</span>
+                        <a href="/learning-entries">Open learning entries</a>
+                    </div>
+                </EmptyContent>
+            </FluentDataGrid>
+        </div>
 
-    <FluentTabs OnTabChange="HandleTabChangeAsync" Size="TabSize.Medium">
-        <FluentTab Id="@AnkiNoteExportStatus.All.ToString()"
-                   Label="@AnkiNoteExportStatus.All.ToString().Humanize()">
-            <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Style="margin-top:8px">
-                <FluentSearch @bind-Value="Headword"
-                              @bind-Value:after="RefreshDataAsync"
-                              Immediate="true"
-                              ImmediateDelay="500"
-                              Placeholder="Headword"
-                              Style="flex:1;" />
-                <FluentSearch @bind-Value="NoteType"
-                              @bind-Value:after="RefreshDataAsync"
-                              Immediate="true"
-                              ImmediateDelay="500"
-                              Placeholder="Note type"
-                              Style="flex:1;" />
-                <FluentSearch @bind-Value="Deck"
-                              @bind-Value:after="RefreshDataAsync"
-                              Immediate="true"
-                              ImmediateDelay="500"
-                              Placeholder="Deck"
-                              Style="flex:1;" />
-            </FluentStack>
-            <FluentStack Orientation="Orientation.Vertical" Style="padding-top:10px">
-                <FluentDataGrid TGridItem="NoteGridItem"
-                                @ref="@dataGrid"
-                                Items="@GridItems"
-                                Pagination="@pagination"
-                                Loading="@IsRefreshing"
-                                RefreshItems="RefreshItemsAsync"
-                                DisplayMode="DataGridDisplayMode.Table"
-                                GenerateHeader="GenerateHeaderOption.Sticky"
-                                AutoFit="true"
-                                ShowHover="true">
-                    <ChildContent>
-                        <SelectColumn TGridItem="NoteGridItem"
-                                      SelectMode="DataGridSelectMode.Multiple"
-                                      Property="@(x => SelectedGridItemIds.Contains(x.Id))"
-                                      OnSelect="HandleSelectItem"
-                                      SelectAll="@(GridItems.All(i => SelectedGridItemIds.Contains(i.Id)))"
-                                      SelectAllChanged="HandleSelectAllChanged" />
-                        <PropertyColumn Title="Headword" Property="@(x => x.Headword)" />
-                        <PropertyColumn Title="Deck" Property="@(x => x.Deck)" />
-                        <PropertyColumn Title="Note type" Property="@(x => x.NoteType)" />
-                        <TemplateColumn Title="Status">
-                            <ExportStatusBadge Status="@(context.ExportStatus)" />
-                        </TemplateColumn>
-                        <PropertyColumn Title="Created date" Property="@(x => x.CreatedDate)" Format="yyyy-MM-dd" />
-                    </ChildContent>
-                    <EmptyContent>
-                        <FluentStack Orientation="Orientation.Horizontal"
-                                     HorizontalAlignment="HorizontalAlignment.Center"
-                                     VerticalAlignment="VerticalAlignment.Center"
-                                     HorizontalGap="10">
-                            <FluentIcon Value="@(new Icons.Filled.Size16.Crown())" Color="@Color.Accent" />
-                            Nothing to see here. Carry on!
-                        </FluentStack>
-                    </EmptyContent>
-                </FluentDataGrid>
-                <FluentPaginator State="@pagination" Style="width:100%;margin-top:0">
-                    <SummaryTemplate>
-                        <FluentStack Orientation="Orientation.Horizontal"
-                                     HorizontalAlignment="HorizontalAlignment.SpaceBetween"
-                                     VerticalAlignment="VerticalAlignment.Center">
-                            <div>
-                                <strong>@pagination.TotalItemCount!.Value</strong> @("item".ToQuantity(pagination.TotalItemCount!.Value, ShowQuantityAs.None))
-                                @if (HasAnyItemSelected)
-                                {
-                                    <span> (<strong>@SelectedGridItemIds.Count</strong> @("item".ToQuantity(SelectedGridItemIds.Count, ShowQuantityAs.None)) selected)</span>
-                                }
-                            </div>
+        <FluentPaginator State="@pagination" Style="width:100%;margin-top:0">
+            <SummaryTemplate>
+                <FluentStack Orientation="Orientation.Horizontal"
+                             HorizontalAlignment="HorizontalAlignment.SpaceBetween"
+                             VerticalAlignment="VerticalAlignment.Center">
+                    <div class="pagination-summary">
+                        <strong>@pagination.TotalItemCount!.Value</strong> @("note".ToQuantity(pagination.TotalItemCount!.Value, ShowQuantityAs.None))
+                        @if (HasAnyItemSelected)
+                        {
+                            <span> &middot; @SelectedGridItemIds.Count selected</span>
+                        }
+                    </div>
 
-                            <FluentStack Orientation="Orientation.Horizontal"
-                                         VerticalAlignment="VerticalAlignment.Center"
-                                         HorizontalGap="8"
-                                         Style="width:auto;">
-                                Items per page
-                                <FluentSelect TOption="Option<int>"
-                                              Items="@itemsPerPageOptions"
-                                              OptionText="@(p => p.Value.ToString())"
-                                              Value="@(pagination.ItemsPerPage.ToString())"
-                                              ValueChanged="async (e) => await pagination.SetItemsPerPageAsync(int.Parse(e))"
-                                              Width="72px" />
-                            </FluentStack>
-                        </FluentStack>
-                    </SummaryTemplate>
-                </FluentPaginator>
-            </FluentStack>
-        </FluentTab>
-
-        <FluentTab Id="@AnkiNoteExportStatus.NotStarted.ToString()"
-                   Label="@AnkiNoteExportStatus.NotStarted.ToString().Humanize()">
-            <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Style="margin-top:8px">
-                <FluentSearch @bind-Value="Headword"
-                              @bind-Value:after="RefreshDataAsync"
-                              Immediate="true"
-                              ImmediateDelay="500"
-                              Placeholder="Headword"
-                              Style="flex:1;" />
-                <FluentSearch @bind-Value="NoteType"
-                              @bind-Value:after="RefreshDataAsync"
-                              Immediate="true"
-                              ImmediateDelay="500"
-                              Placeholder="Note type"
-                              Style="flex:1;" />
-                <FluentSearch @bind-Value="Deck"
-                              @bind-Value:after="RefreshDataAsync"
-                              Immediate="true"
-                              ImmediateDelay="500"
-                              Placeholder="Deck"
-                              Style="flex:1;" />
-            </FluentStack>
-            <FluentStack Orientation="Orientation.Vertical" Style="padding-top:10px">
-                <FluentDataGrid TGridItem="NoteGridItem"
-                                @ref="@dataGrid"
-                                Items="@GridItems"
-                                Pagination="@pagination"
-                                Loading="@IsRefreshing"
-                                RefreshItems="RefreshItemsAsync"
-                                DisplayMode="DataGridDisplayMode.Table"
-                                GenerateHeader="GenerateHeaderOption.Sticky"
-                                AutoFit="true"
-                                ShowHover="true">
-                    <ChildContent>
-                        <SelectColumn TGridItem="NoteGridItem"
-                                      SelectMode="DataGridSelectMode.Multiple"
-                                      Property="@(x => SelectedGridItemIds.Contains(x.Id))"
-                                      OnSelect="HandleSelectItem"
-                                      SelectAll="@(GridItems.All(i => SelectedGridItemIds.Contains(i.Id)))"
-                                      SelectAllChanged="HandleSelectAllChanged" />
-                        <PropertyColumn Title="Headword" Property="@(x => x.Headword)" />
-                        <PropertyColumn Title="Deck" Property="@(x => x.Deck)" />
-                        <PropertyColumn Title="Note type" Property="@(x => x.NoteType)" />
-                        <TemplateColumn Title="Status">
-                            <ExportStatusBadge Status="@(context.ExportStatus)" />
-                        </TemplateColumn>
-                        <PropertyColumn Title="Created date" Property="@(x => x.CreatedDate)" Format="yyyy-MM-dd" />
-                    </ChildContent>
-                    <EmptyContent>
-                        <FluentStack Orientation="Orientation.Horizontal"
-                                     HorizontalAlignment="HorizontalAlignment.Center"
-                                     VerticalAlignment="VerticalAlignment.Center"
-                                     HorizontalGap="10">
-                            <FluentIcon Value="@(new Icons.Filled.Size16.Crown())" Color="@Color.Accent" />
-                            Nothing to see here. Carry on!
-                        </FluentStack>
-                    </EmptyContent>
-                </FluentDataGrid>
-                <FluentPaginator State="@pagination" Style="width:100%;margin-top:0">
-                    <SummaryTemplate>
-                        <FluentStack Orientation="Orientation.Horizontal"
-                                     HorizontalAlignment="HorizontalAlignment.SpaceBetween"
-                                     VerticalAlignment="VerticalAlignment.Center">
-                            <div>
-                                <strong>@pagination.TotalItemCount!.Value</strong> @("item".ToQuantity(pagination.TotalItemCount!.Value, ShowQuantityAs.None))
-                                @if (HasAnyItemSelected)
-                                {
-                                    <span> (<strong>@SelectedGridItemIds.Count</strong> @("item".ToQuantity(SelectedGridItemIds.Count, ShowQuantityAs.None)) selected)</span>
-                                }
-                            </div>
-
-                            <FluentStack Orientation="Orientation.Horizontal"
-                                         VerticalAlignment="VerticalAlignment.Center"
-                                         HorizontalGap="8"
-                                         Style="width:auto;">
-                                Items per page
-                                <FluentSelect TOption="Option<int>"
-                                              Items="@itemsPerPageOptions"
-                                              OptionText="@(p => p.Value.ToString())"
-                                              Value="@(pagination.ItemsPerPage.ToString())"
-                                              ValueChanged="async (e) => await pagination.SetItemsPerPageAsync(int.Parse(e))"
-                                              Width="72px" />
-                            </FluentStack>
-                        </FluentStack>
-                    </SummaryTemplate>
-                </FluentPaginator>
-            </FluentStack>
-        </FluentTab>
-
-        <FluentTab Id="@AnkiNoteExportStatus.Processing.ToString()"
-                   Label="@AnkiNoteExportStatus.Processing.ToString().Humanize()">
-            <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Style="margin-top:8px">
-                <FluentSearch @bind-Value="Headword"
-                              @bind-Value:after="RefreshDataAsync"
-                              Immediate="true"
-                              ImmediateDelay="500"
-                              Placeholder="Headword"
-                              Style="flex:1;" />
-                <FluentSearch @bind-Value="NoteType"
-                              @bind-Value:after="RefreshDataAsync"
-                              Immediate="true"
-                              ImmediateDelay="500"
-                              Placeholder="Note type"
-                              Style="flex:1;" />
-                <FluentSearch @bind-Value="Deck"
-                              @bind-Value:after="RefreshDataAsync"
-                              Immediate="true"
-                              ImmediateDelay="500"
-                              Placeholder="Deck"
-                              Style="flex:1;" />
-            </FluentStack>
-            <FluentStack Orientation="Orientation.Vertical" Style="padding-top:10px">
-                <FluentDataGrid TGridItem="NoteGridItem"
-                                @ref="@dataGrid"
-                                Items="@GridItems"
-                                Pagination="@pagination"
-                                Loading="@IsRefreshing"
-                                RefreshItems="RefreshItemsAsync"
-                                DisplayMode="DataGridDisplayMode.Table"
-                                GenerateHeader="GenerateHeaderOption.Sticky"
-                                AutoFit="true"
-                                ShowHover="true">
-                    <ChildContent>
-                        <SelectColumn TGridItem="NoteGridItem"
-                                      SelectMode="DataGridSelectMode.Multiple"
-                                      Property="@(x => SelectedGridItemIds.Contains(x.Id))"
-                                      OnSelect="HandleSelectItem"
-                                      SelectAll="@(GridItems.All(i => SelectedGridItemIds.Contains(i.Id)))"
-                                      SelectAllChanged="HandleSelectAllChanged" />
-                        <PropertyColumn Title="Headword" Property="@(x => x.Headword)" />
-                        <PropertyColumn Title="Deck" Property="@(x => x.Deck)" />
-                        <PropertyColumn Title="Note type" Property="@(x => x.NoteType)" />
-                        <TemplateColumn Title="Status">
-                            <ExportStatusBadge Status="@(context.ExportStatus)" />
-                        </TemplateColumn>
-                        <PropertyColumn Title="Created date" Property="@(x => x.CreatedDate)" Format="yyyy-MM-dd" />
-                    </ChildContent>
-                    <EmptyContent>
-                        <FluentStack Orientation="Orientation.Horizontal"
-                                     HorizontalAlignment="HorizontalAlignment.Center"
-                                     VerticalAlignment="VerticalAlignment.Center"
-                                     HorizontalGap="10">
-                            <FluentIcon Value="@(new Icons.Filled.Size16.Crown())" Color="@Color.Accent" />
-                            Nothing to see here. Carry on!
-                        </FluentStack>
-                    </EmptyContent>
-                </FluentDataGrid>
-                <FluentPaginator State="@pagination" Style="width:100%;margin-top:0">
-                    <SummaryTemplate>
-                        <FluentStack Orientation="Orientation.Horizontal"
-                                     HorizontalAlignment="HorizontalAlignment.SpaceBetween"
-                                     VerticalAlignment="VerticalAlignment.Center">
-                            <div>
-                                <strong>@pagination.TotalItemCount!.Value</strong> @("item".ToQuantity(pagination.TotalItemCount!.Value, ShowQuantityAs.None))
-                                @if (HasAnyItemSelected)
-                                {
-                                    <span> (<strong>@SelectedGridItemIds.Count</strong> @("item".ToQuantity(SelectedGridItemIds.Count, ShowQuantityAs.None)) selected)</span>
-                                }
-                            </div>
-
-                            <FluentStack Orientation="Orientation.Horizontal"
-                                         VerticalAlignment="VerticalAlignment.Center"
-                                         HorizontalGap="8"
-                                         Style="width:auto;">
-                                Items per page
-                                <FluentSelect TOption="Option<int>"
-                                              Items="@itemsPerPageOptions"
-                                              OptionText="@(p => p.Value.ToString())"
-                                              Value="@(pagination.ItemsPerPage.ToString())"
-                                              ValueChanged="async (e) => await pagination.SetItemsPerPageAsync(int.Parse(e))"
-                                              Width="72px" />
-                            </FluentStack>
-                        </FluentStack>
-                    </SummaryTemplate>
-                </FluentPaginator>
-            </FluentStack>
-        </FluentTab>
-
-        <FluentTab Id="@AnkiNoteExportStatus.Success.ToString()"
-                   Label="@AnkiNoteExportStatus.Success.ToString().Humanize()">
-            Tab three content. This is for testing.
-        </FluentTab>
-
-        <FluentTab Id="@AnkiNoteExportStatus.Failed.ToString()"
-                   Label="@AnkiNoteExportStatus.Failed.ToString().Humanize()">
-            Tab four content. This is for testing.
-        </FluentTab>
-    </FluentTabs>
-</div>
+                    <FluentStack Orientation="Orientation.Horizontal"
+                                 VerticalAlignment="VerticalAlignment.Center"
+                                 HorizontalGap="8"
+                                 Style="width:auto;">
+                        <span class="items-label">Items per page</span>
+                        <FluentSelect TOption="Option<int>"
+                                      Items="@itemsPerPageOptions"
+                                      OptionText="@(p => p.Value.ToString())"
+                                      Value="@(pagination.ItemsPerPage.ToString())"
+                                      ValueChanged="async (e) => await pagination.SetItemsPerPageAsync(int.Parse(e))"
+                                      Width="72px" />
+                    </FluentStack>
+                </FluentStack>
+            </SummaryTemplate>
+        </FluentPaginator>
+    </section>
+</main>

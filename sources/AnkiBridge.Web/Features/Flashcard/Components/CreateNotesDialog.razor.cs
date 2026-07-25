@@ -109,21 +109,30 @@ public partial class CreateNotesDialog
 
     private async Task SubmitAsync()
     {
-        if (!editContext.Validate())
+        if (isSubmitting || !editContext.Validate())
             return;
 
-        await Dispatcher
-            .Send(new CreateNotesCommand(
-                LearningEntryIds: Content.LearningEntryIds,
-                NoteTypeId: Form.SelectedNoteType.Id,
-                DeckId: Form.SelectedDeck.Id))
-            .Match(
-                async _ =>
-                {
-                    await Dialog.CloseAsync();
-                    ToastService.ShowSuccess("Đã tạo thẻ Anki thành công!");
-                },
-                error => DialogService.ShowErrorAsync(error.Message));
+        isSubmitting = true;
+
+        try
+        {
+            await Dispatcher
+                .Send(new CreateNotesCommand(
+                    LearningEntryIds: Content.LearningEntryIds,
+                    NoteTypeId: Form.SelectedNoteType.Id,
+                    DeckId: Form.SelectedDeck.Id))
+                .Match(
+                    async _ =>
+                    {
+                        await Dialog.CloseAsync();
+                        ToastService.ShowSuccess("Anki notes created successfully.");
+                    },
+                    error => DialogService.ShowErrorAsync(error.Message));
+        }
+        finally
+        {
+            isSubmitting = false;
+        }
     }
 
     private async Task CancelAsync() => await Dialog.CancelAsync();

@@ -8,13 +8,12 @@ public partial class ExportStatusBadge
     [Parameter]
     public ExportStatus Status { get; set; }
 
-    private string? BackgroundColor => Status switch
+    private string CssClass => Status switch
     {
-        ExportStatus.NotStarted => "#adadad",
-        ExportStatus.Processing => "#eaa300",
-        ExportStatus.Success => "#13a10e",
-        ExportStatus.Failed => "#d13438",
-        ExportStatus.Cancelled => "#616161",
-        _ => null
+        ExportStatus.Processing => "export-status export-status--processing",
+        ExportStatus.Success => "export-status export-status--success",
+        ExportStatus.Failed => "export-status export-status--failed",
+        ExportStatus.Cancelled => "export-status export-status--cancelled",
+        _ => "export-status"
     };
 }

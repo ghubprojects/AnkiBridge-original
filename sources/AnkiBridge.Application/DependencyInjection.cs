@@ -2,6 +2,7 @@
 using AnkiBridge.Application.Common.IntegrationEvents;
 using AnkiBridge.Application.ExceptionHandlers;
 using AnkiBridge.Application.Features.Flashcard.IntegrationEvents;
+using AnkiBridge.Application.Features.Learning.IntegrationEvents;
 using MediatR.Pipeline;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -28,6 +29,8 @@ public static class DependencyInjection
         // Register integration event handlers
         services.AddSubscription<NoteExportStartedIntegrationEvent, NoteExportStartedIntegrationEventHandler>();
         services.AddSubscription<NotesExportStartedIntegrationEvent, NotesExportStartedIntegrationEventHandler>();
+        services.AddSubscription<LearningEntryMediaUploadRequestedIntegrationEvent,
+            LearningEntryMediaUploadRequestedIntegrationEventHandler>();
 
         return builder;
     }

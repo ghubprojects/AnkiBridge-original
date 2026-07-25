@@ -5,5 +5,5 @@ public enum TranslationSource
     User,
     Cambridge,
     Google,
-    Other
+    Unknown
 }

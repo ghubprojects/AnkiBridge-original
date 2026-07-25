@@ -11,13 +11,18 @@ public sealed class DictionaryDefinition : Entity<Guid>
     private readonly List<DictionaryExample> _examples = [];
     public IReadOnlyCollection<DictionaryExample> Examples => _examples.AsReadOnly();
 
+    #region Constructors
+
     private DictionaryDefinition() { }
 
     private DictionaryDefinition(string definition, int orderIndex)
     {
+        Id = Guid.CreateVersion7();
         Text = definition;
         OrderIndex = orderIndex;
     }
+
+    #endregion
 
     #region Factory Method
 

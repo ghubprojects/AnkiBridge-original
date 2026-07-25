@@ -1,4 +1,3 @@
-﻿using AnkiBridge.Application.Common.Query.Pagination;
 using AnkiBridge.Application.Features.Dictionary.Contracts.QueryServices.Models;
 
 namespace AnkiBridge.Application.Features.Dictionary.Contracts.QueryServices;

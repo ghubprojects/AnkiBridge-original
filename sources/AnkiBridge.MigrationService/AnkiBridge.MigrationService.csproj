@@ -4,7 +4,8 @@
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <UserSecretsId>dotnet-AnkiBridge.MigrationService-22c3736b-ff8f-4e34-99c6-ca23938cf961</UserSecretsId>
+    <!-- Shares local-development infrastructure secrets with AnkiBridge.Web. -->
+    <UserSecretsId>53e38011-d8ec-4a11-9556-84fb2e83a371</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>

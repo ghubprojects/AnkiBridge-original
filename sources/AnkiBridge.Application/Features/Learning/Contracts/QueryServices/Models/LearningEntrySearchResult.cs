@@ -8,4 +8,6 @@ public sealed record LearningEntrySearchResult(
     PartOfSpeech PartOfSpeech,
     string Ipa,
     string Translation,
+    UploadStatus AudioUploadStatus,
+    UploadStatus ImageUploadStatus,
     DateTimeOffset CreatedAt);

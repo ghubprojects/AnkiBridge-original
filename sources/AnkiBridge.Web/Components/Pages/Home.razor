@@ -1,7 +1,80 @@
-﻿@page "/"
+@page "/"
 
-<PageTitle>Home - AnkiBridge</PageTitle>
+<PageTitle>Overview - AnkiBridge</PageTitle>
 
-<h3>Home</h3>
+<main class="dashboard-page">
+    <header class="page-header">
+        <div>
+            <span class="breadcrumb">AnkiBridge / Overview</span>
+            <h1>Overview</h1>
+            <p>Manage vocabulary, prepare notes and monitor the handoff to Anki from one workspace.</p>
+        </div>
+        <a class="primary-action" href="/learning-entries/create">
+            <FluentIcon Value="@(new Icons.Regular.Size20.Add())" />
+            New learning entry
+        </a>
+    </header>
 
-Welcome to your new Fluent app.
+    <section class="workspace-panel" aria-labelledby="workspace-title">
+        <div class="workspace-intro">
+            <span class="section-label">Recommended workflow</span>
+            <h2 id="workspace-title">Build useful cards with fewer handoffs</h2>
+            <p>Create the learning entry first. Audio and images continue processing in the background, so you can move directly to the next word.</p>
+            <div class="intro-actions">
+                <a class="primary-action" href="/learning-entries/create">Create an entry</a>
+                <a class="secondary-action" href="/learning-entries">Open library</a>
+            </div>
+        </div>
+
+        <ol class="workflow-list">
+            <li>
+                <span class="step-number">1</span>
+                <div><strong>Capture vocabulary</strong><span>Search the dictionary or enter details manually.</span></div>
+            </li>
+            <li>
+                <span class="step-number">2</span>
+                <div><strong>Review and select</strong><span>Check media status and choose entries for cards.</span></div>
+            </li>
+            <li>
+                <span class="step-number">3</span>
+                <div><strong>Export to Anki</strong><span>Send prepared notes to your selected deck.</span></div>
+            </li>
+        </ol>
+    </section>
+
+    <section class="quick-section" aria-labelledby="quick-actions-title">
+        <div class="section-heading">
+            <div>
+                <h2 id="quick-actions-title">Quick actions</h2>
+                <p>Common tasks in this workspace.</p>
+            </div>
+        </div>
+
+        <div class="quick-grid">
+            <a class="quick-card" href="/learning-entries/create">
+                <span class="quick-icon"><FluentIcon Value="@(new Icons.Regular.Size20.Add())" /></span>
+                <div><strong>Add vocabulary</strong><span>Create and enrich a new learning entry.</span></div>
+                <FluentIcon class="quick-arrow" Value="@(new Icons.Regular.Size20.ChevronRight())" />
+            </a>
+            <a class="quick-card" href="/learning-entries">
+                <span class="quick-icon"><FluentIcon Value="@(new Icons.Regular.Size20.BookOpen())" /></span>
+                <div><strong>Learning library</strong><span>Search entries and check media status.</span></div>
+                <FluentIcon class="quick-arrow" Value="@(new Icons.Regular.Size20.ChevronRight())" />
+            </a>
+            <a class="quick-card" href="/flashcard/notes">
+                <span class="quick-icon"><FluentIcon Value="@(new Icons.Regular.Size20.SlideText())" /></span>
+                <div><strong>Anki notes</strong><span>Review and export prepared flashcards.</span></div>
+                <FluentIcon class="quick-arrow" Value="@(new Icons.Regular.Size20.ChevronRight())" />
+            </a>
+        </div>
+    </section>
+
+    <section class="system-panel" aria-label="Workspace information">
+        <div class="system-icon"><FluentIcon Value="@(new Icons.Regular.Size20.ShieldCheckmark())" /></div>
+        <div>
+            <strong>Local workspace</strong>
+            <span>Your database and media remain in your self-hosted environment.</span>
+        </div>
+        <span class="system-state"><span></span>Available</span>
+    </section>
+</main>

@@ -14,6 +14,9 @@ public sealed class DictionaryExampleConfiguration : IEntityTypeConfiguration<Di
         // Primary key
         builder.HasKey(x => x.Id);
 
+        builder.Property(x => x.Id)
+            .ValueGeneratedNever();
+
         // Foreign key
         builder.Property<Guid>("DefinitionId")
             .IsRequired();

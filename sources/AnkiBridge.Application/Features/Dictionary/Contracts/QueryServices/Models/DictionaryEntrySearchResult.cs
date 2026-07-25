@@ -5,5 +5,6 @@ namespace AnkiBridge.Application.Features.Dictionary.Contracts.QueryServices.Mod
 public sealed record DictionaryEntrySearchResult(
     Guid Id,
     string Headword,
-    PartOfSpeech PartOfSpeech
+    PartOfSpeech PartOfSpeech,
+    DictionarySource Source
 );

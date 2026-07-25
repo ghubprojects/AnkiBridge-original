@@ -1,4 +1,4 @@
-﻿using AnkiBridge.Application.Features.Dictionary.UseCases.GenerateAudio;
+using AnkiBridge.Application.Features.Dictionary.UseCases.GenerateAudio;
 using AnkiBridge.Application.Features.Dictionary.UseCases.GetDictionaryEntry;
 using AnkiBridge.Application.Features.Dictionary.UseCases.ResolveIpa;
 using AnkiBridge.Application.Features.Dictionary.UseCases.SearchImages;
@@ -74,7 +74,6 @@ public sealed class LearningEntryCreateViewModel
 
     // Audio properties
     public AudioSource? AudioSource { get; set; }
-    public string? AudioRelativePath { get; set; }
     public string? AudioAbsolutePath { get; set; }
     public string? AudioFileName { get; set; }
     public string? AudioContentType { get; set; }
@@ -83,7 +82,6 @@ public sealed class LearningEntryCreateViewModel
 
     // Image properties
     public ImageSource? ImageSource { get; set; }
-    public string? ImageRelativePath { get; set; }
     public string? ImageAbsolutePath { get; set; }
     public string? ImageFileName { get; set; }
     public string? ImageContentType { get; set; }
@@ -137,10 +135,10 @@ public sealed class LearningEntryCreateViewModel
         Ipa = string.Empty;
 
         // Media Reset
-        AudioSource = null; AudioRelativePath = null; AudioAbsolutePath = null;
+        AudioSource = null; AudioAbsolutePath = null;
         AudioFileName = null; AudioContentType = null; AudioPreviewUrl = null; AudioUrl = null;
 
-        ImageSource = null; ImageRelativePath = null; ImageAbsolutePath = null;
+        ImageSource = null; ImageAbsolutePath = null;
         ImageFileName = null; ImageContentType = null; ImagePreviewUrl = null; ImageUrl = null;
 
         // Re-init context
@@ -172,7 +170,7 @@ public sealed class LearningEntryCreateViewModel
         if (Images.Count <= 1) return;
 
         CurrentImageIndex = (CurrentImageIndex + 1) % Images.Count;
-        ImageRelativePath = null;
+        DeleteTemporaryFile(ImageAbsolutePath);
         ImageAbsolutePath = null;
         ImagePreviewUrl = null;
         ImageUrl = Images[CurrentImageIndex];
@@ -180,16 +178,22 @@ public sealed class LearningEntryCreateViewModel
 
     public void ClearAudio()
     {
+        DeleteTemporaryFile(AudioAbsolutePath);
         AudioUrl = null;
         AudioAbsolutePath = null;
+        AudioFileName = null;
+        AudioContentType = null;
         AudioPreviewUrl = null;
         AudioSource = null;
     }
 
     public void ClearImage()
     {
+        DeleteTemporaryFile(ImageAbsolutePath);
         ImageUrl = null;
         ImageAbsolutePath = null;
+        ImageFileName = null;
+        ImageContentType = null;
         ImagePreviewUrl = null;
         ImageSource = null;
     }
@@ -197,8 +201,8 @@ public sealed class LearningEntryCreateViewModel
     // ── MEDIA UPLOAD PROCESSORS ──────────────────────────────────────────────
     public async Task ProcessUploadedAudioAsync(string tempFilePath, string fileName, string contentType)
     {
+        DeleteTemporaryFile(AudioAbsolutePath);
         AudioSource = Domain.Enums.AudioSource.User;
-        AudioRelativePath = null;
         AudioAbsolutePath = tempFilePath;
         AudioFileName = fileName;
         AudioContentType = contentType;
@@ -210,8 +214,8 @@ public sealed class LearningEntryCreateViewModel
 
     public async Task ProcessUploadedImageAsync(string tempFilePath, string fileName, string contentType)
     {
+        DeleteTemporaryFile(ImageAbsolutePath);
         ImageSource = Domain.Enums.ImageSource.User;
-        ImageRelativePath = null;
         ImageAbsolutePath = tempFilePath;
         ImageFileName = fileName;
         ImageContentType = contentType;
@@ -225,7 +229,7 @@ public sealed class LearningEntryCreateViewModel
 
     public async Task<Result<string>> GenerateIpaAsync(IRequestDispatcher dispatcher)
     {
-        var result = await dispatcher.Send(new ResolveIpaQuery(Headword.Trim(), Accent));
+        var result = await dispatcher.Send(new TranscribeHeadwordQuery(Headword.Trim(), Accent));
 
         if (result.IsSuccess)
             Ipa = result.Value.WrapWithSlashes();
@@ -245,6 +249,10 @@ public sealed class LearningEntryCreateViewModel
 
         if (result.IsSuccess)
         {
+            DeleteTemporaryFile(AudioAbsolutePath);
+            AudioAbsolutePath = null;
+            AudioFileName = null;
+            AudioContentType = null;
             AudioUrl = result.Value;
             AudioSource = Domain.Enums.AudioSource.Google;
         }
@@ -265,7 +273,7 @@ public sealed class LearningEntryCreateViewModel
 
         _imagePage++;
 
-        var result = await dispatcher.Send(new SearchImagesQuery(Headword.Trim(), Count: 5, Page: _imagePage));
+        var result = await dispatcher.Send(new GenerateImagesQuery(Headword.Trim(), Count: 5, Page: _imagePage));
         if (result.IsFailure)
         {
             _imagePage--; // rollback on failure
@@ -283,6 +291,10 @@ public sealed class LearningEntryCreateViewModel
         Images.AddRange(newImages.Select(x => x.FullUrl));
 
         // Jump to first newly loaded image
+        DeleteTemporaryFile(ImageAbsolutePath);
+        ImageAbsolutePath = null;
+        ImageFileName = null;
+        ImageContentType = null;
         CurrentImageIndex = previousCount;
         ImageUrl = Images[CurrentImageIndex];
         ImageSource = newImages[0].Source;
@@ -357,20 +369,35 @@ public sealed class LearningEntryCreateViewModel
             Ipa,
 
             // Audio
-            AudioSource ?? Domain.Enums.AudioSource.User,
-            AudioRelativePath,
+            AudioSource,
+            AudioSource == Domain.Enums.AudioSource.User ? null : AudioUrl,
             AudioAbsolutePath,
             AudioFileName,
             AudioContentType,
 
             // Image
-            ImageSource ?? Domain.Enums.ImageSource.User,
-            ImageRelativePath,
+            ImageSource,
+            ImageSource == Domain.Enums.ImageSource.User ? null : ImageUrl,
             ImageAbsolutePath,
             ImageFileName,
             ImageContentType
         );
 
         return await dispatcher.Send(command);
+    }
+
+    private static void DeleteTemporaryFile(string? path)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+            return;
+
+        try
+        {
+            File.Delete(path);
+        }
+        catch
+        {
+            // The OS temp directory is cleaned periodically; failure here must not block the form.
+        }
     }
 }

@@ -1,4 +1,4 @@
-﻿@rendermode InteractiveServer
+@rendermode InteractiveServer
 
 <div class="wrapper">
     <input type="checkbox" title="Menu expand/collapse toggle" id="navmenu-toggle" class="navmenu-icon" />
@@ -9,7 +9,7 @@
                            Match="NavLinkMatch.All"
                            Icon="@(new Icons.Regular.Size20.Home())"
                            IconColor="Color.Accent">
-                Home
+                Overview
             </FluentNavLink>
             <FluentNavLink Href="learning-entries"
                            Icon="@(new Icons.Regular.Size20.BookOpen())"
@@ -19,9 +19,14 @@
             <FluentNavLink Href="flashcard/notes"
                            Icon="@(new Icons.Regular.Size20.SlideText())"
                            IconColor="Color.Accent">
-                Flashcard notes
+                Anki notes
             </FluentNavLink>
         </FluentNavMenu>
+
+        <div class="nav-meta">
+            <span class="nav-meta-label">Background services</span>
+            <span class="nav-meta-value"><span class="nav-meta-dot"></span>Ready</span>
+        </div>
     </nav>
 </div>
 

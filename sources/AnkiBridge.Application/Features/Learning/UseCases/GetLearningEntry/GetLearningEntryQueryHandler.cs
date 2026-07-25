@@ -27,7 +27,11 @@ public sealed class GetLearningEntryQueryHandler(
             item.Definition,
             item.Translation,
             item.AudioPath,
+            item.AudioUploadStatus,
+            item.AudioUploadError,
             item.ImagePath,
+            item.ImageUploadStatus,
+            item.ImageUploadError,
             item.Examples
                 .Select(x => new LearningEntryDetailExample(x.Id, x.Text))
                 .ToList(),

@@ -25,7 +25,7 @@ public partial class LearningEntryCreate
         {
             var currentHeadword = ViewModel.Headword.Trim();
 
-            var scrapeResult = await Dispatcher.Send(new ScrapeDictionaryEntryCommand(currentHeadword));
+            var scrapeResult = await Dispatcher.Send(new ScrapeDictionaryEntriesCommand(currentHeadword));
             if (scrapeResult.IsFailure)
             {
                 await DialogService.ShowErrorAsync(scrapeResult.Error.Message);

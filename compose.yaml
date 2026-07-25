@@ -1,0 +1,113 @@
+name: ankibridge
+
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: 10m
+    max-file: "3"
+
+x-database-environment: &database-environment
+  ConnectionStrings__ankibridgedb: >-
+    Host=postgres;Port=5432;Database=${POSTGRES_DB:-ankibridgedb};Username=${POSTGRES_USER:-postgres};Password=${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+
+services:
+  postgres:
+    image: postgres:17.10-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-ankibridgedb}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    ports:
+      - "${BIND_ADDRESS:-127.0.0.1}:${POSTGRES_HOST_PORT:-5432}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+    shm_size: 128mb
+    logging: *default-logging
+
+  azurite:
+    image: mcr.microsoft.com/azure-storage/azurite:3.35.0
+    restart: unless-stopped
+    command:
+      - azurite-blob
+      - --location
+      - /data
+      - --blobHost
+      - 0.0.0.0
+      - --blobPort
+      - "10000"
+      - --loose
+      - --silent
+    ports:
+      - "${BIND_ADDRESS:-127.0.0.1}:${AZURITE_BLOB_PORT:-10000}:10000"
+    volumes:
+      - azurite-data:/data
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "const net=require('net');const s=net.connect(10000,'127.0.0.1',()=>{s.end();process.exit(0)});s.on('error',()=>process.exit(1))"
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 5s
+    logging: *default-logging
+
+  migrations:
+    image: ankibridge-migrations:local
+    build:
+      context: .
+      target: migrations
+    restart: "no"
+    environment:
+      <<: *database-environment
+      DOTNET_ENVIRONMENT: Production
+      MigrationService__RunMigrations: "true"
+      MigrationService__RunSeeders: "true"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    logging: *default-logging
+
+  web:
+    image: ankibridge-web:local
+    build:
+      context: .
+      target: web
+    restart: unless-stopped
+    environment:
+      <<: *database-environment
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_HTTP_PORTS: 8080
+      ConnectionStrings__blobs: >-
+        DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;
+      Storage__PublicEndpoint: ${AZURITE_PUBLIC_ENDPOINT:-http://localhost:10000}
+      AnkiConnect__BaseUrl: ${ANKI_CONNECT_URL:-http://host.docker.internal:8765}
+      Images__Pixabay__ApiKey: ${PIXABAY_API_KEY:-}
+      Images__Pexels__ApiKey: ${PEXELS_API_KEY:-}
+    ports:
+      - "${BIND_ADDRESS:-127.0.0.1}:${ANKIBRIDGE_HTTP_PORT:-8080}:8080"
+    volumes:
+      - web-keys:/home/app/.aspnet/DataProtection-Keys
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    depends_on:
+      migrations:
+        condition: service_completed_successfully
+      azurite:
+        condition: service_healthy
+    security_opt:
+      - no-new-privileges:true
+    logging: *default-logging
+
+volumes:
+  postgres-data:
+  azurite-data:
+  web-keys:

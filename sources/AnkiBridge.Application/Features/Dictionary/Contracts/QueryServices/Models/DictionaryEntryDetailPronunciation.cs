@@ -1,10 +1,10 @@
-﻿using AnkiBridge.Domain.Enums;
+using AnkiBridge.Domain.Enums;
 
 namespace AnkiBridge.Application.Features.Dictionary.Contracts.QueryServices.Models;
 
 public sealed record DictionaryEntryDetailPronunciation(
-    Accent Accent,
     string Ipa,
-    AudioSource AudioSource,
-    string AudioUrl
+    Accent Accent,
+    string? AudioUrl,
+    AudioSource? AudioSource
 );

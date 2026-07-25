@@ -1,0 +1,15 @@
+.git
+.github
+.vs
+.vscode
+.idea
+**/bin
+**/obj
+**/TestResults
+aspire/AnkiBridge.AppHost/aspire-output
+tests
+.env
+*.user
+*.suo
+*.log
+README.md

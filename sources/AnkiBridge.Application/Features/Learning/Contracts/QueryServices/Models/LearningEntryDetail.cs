@@ -12,6 +12,10 @@ public sealed record LearningEntryDetail(
      string Definition,
      string Translation,
      string? AudioUrl,
+     UploadStatus AudioUploadStatus,
+     string? AudioUploadError,
      string? ImageUrl,
+     UploadStatus ImageUploadStatus,
+     string? ImageUploadError,
      IReadOnlyList<LearningEntryDetailExample> Examples,
      DateTimeOffset CreatedAt);

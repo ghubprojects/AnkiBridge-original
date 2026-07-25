@@ -74,6 +74,7 @@ public sealed class Worker(
         {
             activity?.AddException(ex);
             logger.LogError(ex, "An error occurred during the database migration/seeding process.");
+            Environment.ExitCode = 1;
             throw;
         }
         finally

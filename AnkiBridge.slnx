@@ -13,6 +13,7 @@
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/AnkiBridge.Application.UnitTests/AnkiBridge.Application.UnitTests.csproj" />
+    <Project Path="tests/AnkiBridge.Infrastructure.IntegrationTests/AnkiBridge.Infrastructure.IntegrationTests.csproj" Id="026683d0-55cd-4cf8-9385-1b59b501ce15" />
     <Project Path="tests/AnkiBridge.Tests/AnkiBridge.Tests.csproj" />
   </Folder>
 </Solution>

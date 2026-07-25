@@ -1,4 +1,4 @@
-﻿using AnkiBridge.Application.Features.Dictionary.Contracts.QueryServices;
+using AnkiBridge.Application.Features.Dictionary.Contracts.QueryServices;
 using AnkiBridge.Application.Features.Dictionary.Contracts.QueryServices.Models;
 using AnkiBridge.Infrastructure.Persistence.DatabaseContext;
 using Microsoft.EntityFrameworkCore;
@@ -18,7 +18,8 @@ public sealed class DictionaryEntryQueryService(ApplicationDbContext context) : 
             .Select(x => new DictionaryEntrySearchResult(
                 x.Id,
                 x.Headword,
-                x.PartOfSpeech))
+                x.PartOfSpeech,
+                x.Source))
             .ToListAsync(cancellationToken);
     }
 
@@ -27,13 +28,8 @@ public sealed class DictionaryEntryQueryService(ApplicationDbContext context) : 
         CancellationToken cancellationToken)
     {
         return await context.DictionaryEntries
-            .AsNoTracking()
-            .Include(e => e.Pronunciations)
-            .Include(e => e.Definitions)
-                .ThenInclude(d => d.Examples)
-            .Include(e => e.Images)
-            .AsSplitQuery()
             .Where(x => x.Id == id)
+            .AsSplitQuery()
             .Select(x => new DictionaryEntryDetail(
                 x.Id,
                 x.Headword,
@@ -44,24 +40,24 @@ public sealed class DictionaryEntryQueryService(ApplicationDbContext context) : 
                     .Select(d => new DictionaryEntryDetailDefinition(
                         d.Text,
                         d.Examples
-                            .Select(e => new DictionaryEntryDetailExample(e.Text))
+                            .Select(e => e.Text)
                             .ToList()))
                     .ToList(),
                 x.Translations
                     .Select(t => new DictionaryEntryDetailTranslation(
-                        t.Source,
-                        t.Text))
+                        t.Text,
+                        t.Source))
                     .ToList(),
                 x.Pronunciations
                     .Select(p => new DictionaryEntryDetailPronunciation(
-                        p.Accent,
                         p.Ipa,
-                        p.AudioSource,
-                        p.AudioUrl))
+                        p.Accent,
+                        p.AudioUrl,
+                        p.AudioSource))
                     .ToList(),
                 x.Images.Select(i => new DictionaryEntryDetailImage(
-                    i.Source,
-                    i.Url))
+                    i.Url,
+                    i.Source))
                 .ToList()))
             .FirstOrDefaultAsync(cancellationToken);
     }

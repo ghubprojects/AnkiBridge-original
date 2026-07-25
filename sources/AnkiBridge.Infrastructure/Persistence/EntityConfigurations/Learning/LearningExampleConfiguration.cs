@@ -14,6 +14,9 @@ public sealed class LearningExampleConfiguration : IEntityTypeConfiguration<Lear
         // Primary key
         builder.HasKey(x => x.Id);
 
+        builder.Property(x => x.Id)
+            .ValueGeneratedNever();
+
         // Foreign key
         builder.Property<Guid>("LearningEntryId")
             .IsRequired();

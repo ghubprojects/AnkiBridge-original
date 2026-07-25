@@ -1,4 +1,4 @@
-﻿@using AnkiBridge.Web.Components.Abstractions
+@using AnkiBridge.Web.Components.Abstractions
 @using AnkiBridge.Web.Features.Flashcard.Models
 
 @inherits DialogComponentBase<CreateNotesDialogContent>
@@ -10,11 +10,15 @@
 </FluentDialogHeader>
 
 <FluentDialogBody>
+    <p class="dialog-description">
+        Choose the Anki destination for <strong>@Content.LearningEntryIds.Count</strong> selected learning @(Content.LearningEntryIds.Count == 1 ? "entry" : "entries").
+    </p>
+
     <FluentEditForm EditContext="editContext" style="width:100%">
         <DataAnnotationsValidator />
 
-        <FluentStack Orientation="Orientation.Horizontal">
-            <FluentStack Orientation="Orientation.Vertical" VerticalGap="4">
+        <div class="destination-grid">
+            <div class="field-group">
                 <FluentCombobox TOption="AnkiOption"
                                 Autocomplete="ComboboxAutocomplete.Both"
                                 SelectedOption="Form.SelectedNoteType"
@@ -26,12 +30,15 @@
                                 Height="200px"
                                 Required="true"
                                 Style="width:100%;" />
-                <p class="button-link" style="margin-top:2px;font-size:12px;" onclick="@SyncNoteTypesAsync">
-                    Missing note types? Sync with Anki
-                </p>
+                <FluentButton Appearance="Appearance.Stealth"
+                              OnClick="SyncNoteTypesAsync"
+                              IconStart="@(new Icons.Regular.Size16.ArrowSync())">
+                    Sync note types with Anki
+                </FluentButton>
                 <FluentValidationMessage For="@(() => Form.SelectedNoteType)" />
-            </FluentStack>
-            <FluentStack Orientation="Orientation.Vertical" VerticalGap="4">
+            </div>
+
+            <div class="field-group">
                 <FluentCombobox TOption="AnkiOption"
                                 Autocomplete="ComboboxAutocomplete.Both"
                                 SelectedOption="Form.SelectedDeck"
@@ -43,27 +50,29 @@
                                 Height="200px"
                                 Required="true"
                                 Style="width:100%;" />
-                <p class="button-link" style="margin-top:2px;font-size:12px;" onclick="@SyncDecksAsync">
-                    Missing decks? Sync with Anki
-                </p>
+                <FluentButton Appearance="Appearance.Stealth"
+                              OnClick="SyncDecksAsync"
+                              IconStart="@(new Icons.Regular.Size16.ArrowSync())">
+                    Sync decks with Anki
+                </FluentButton>
                 <FluentValidationMessage For="@(() => Form.SelectedDeck)" />
-            </FluentStack>
-        </FluentStack>
+            </div>
+        </div>
     </FluentEditForm>
 </FluentDialogBody>
 
 <FluentDialogFooter>
-    <FluentStack HorizontalAlignment="HorizontalAlignment.Right">
-        <FluentButton Appearance="Appearance.Accent"
-                      OnClick="SubmitAsync"
-                      Loading="isSubmitting"
-                      Style="min-width:80px">
-            Create
-        </FluentButton>
+    <FluentStack HorizontalAlignment="HorizontalAlignment.Right" HorizontalGap="8">
         <FluentButton Appearance="Appearance.Neutral"
                       OnClick="@CancelAsync"
                       Style="min-width:80px">
             Cancel
+        </FluentButton>
+        <FluentButton Appearance="Appearance.Accent"
+                      OnClick="SubmitAsync"
+                      Loading="isSubmitting"
+                      Style="min-width:80px">
+            Create notes
         </FluentButton>
     </FluentStack>
 </FluentDialogFooter>

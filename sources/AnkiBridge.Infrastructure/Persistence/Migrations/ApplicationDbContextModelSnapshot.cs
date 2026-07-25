@@ -17,7 +17,7 @@ namespace AnkiBridge.Infrastructure.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.7")
+                .HasAnnotation("ProductVersion", "10.0.8")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
@@ -59,7 +59,6 @@ namespace AnkiBridge.Infrastructure.Migrations
             modelBuilder.Entity("AnkiBridge.Domain.Aggregates.Dictionary.DictionaryDefinition", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
                     b.Property<Guid>("DictionaryEntryId")
@@ -112,7 +111,6 @@ namespace AnkiBridge.Infrastructure.Migrations
             modelBuilder.Entity("AnkiBridge.Domain.Aggregates.Dictionary.DictionaryExample", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
                     b.Property<Guid>("DefinitionId")
@@ -133,7 +131,6 @@ namespace AnkiBridge.Infrastructure.Migrations
             modelBuilder.Entity("AnkiBridge.Domain.Aggregates.Dictionary.DictionaryImage", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
                     b.Property<Guid>("DictionaryEntryId")
@@ -156,10 +153,44 @@ namespace AnkiBridge.Infrastructure.Migrations
                     b.ToTable("DictionaryImage", "Dictionary");
                 });
 
+            modelBuilder.Entity("AnkiBridge.Domain.Aggregates.Dictionary.DictionaryPronunciation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Accent")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)");
+
+                    b.Property<string>("AudioSource")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("AudioUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<Guid>("DictionaryEntryId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Ipa")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DictionaryEntryId");
+
+                    b.HasIndex("Ipa", "Accent");
+
+                    b.ToTable("Pronunciation", "Dictionary");
+                });
+
             modelBuilder.Entity("AnkiBridge.Domain.Aggregates.Dictionary.DictionaryTranslation", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
                     b.Property<Guid>("DictionaryEntryId")
@@ -180,44 +211,6 @@ namespace AnkiBridge.Infrastructure.Migrations
                     b.HasIndex("DictionaryEntryId");
 
                     b.ToTable("DictionaryTranslation", "Dictionary");
-                });
-
-            modelBuilder.Entity("AnkiBridge.Domain.Aggregates.Dictionary.Pronunciation", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Accent")
-                        .IsRequired()
-                        .HasMaxLength(10)
-                        .HasColumnType("character varying(10)");
-
-                    b.Property<string>("AudioSource")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)");
-
-                    b.Property<string>("AudioUrl")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
-                    b.Property<Guid>("DictionaryEntryId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Ipa")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("DictionaryEntryId");
-
-                    b.HasIndex("Ipa", "Accent");
-
-                    b.ToTable("Pronunciation", "Dictionary");
                 });
 
             modelBuilder.Entity("AnkiBridge.Domain.Aggregates.Flashcard.CardTemplates.CardTemplate", b =>
@@ -489,6 +482,15 @@ namespace AnkiBridge.Infrastructure.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)");
 
+                    b.Property<string>("AudioUploadError")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("AudioUploadStatus")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
                     b.Property<string>("Cloze")
                         .IsRequired()
                         .HasMaxLength(50)
@@ -524,6 +526,15 @@ namespace AnkiBridge.Infrastructure.Migrations
                         .HasColumnType("character varying(500)");
 
                     b.Property<string>("ImageSource")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("ImageUploadError")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("ImageUploadStatus")
+                        .IsRequired()
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)");
 
@@ -572,7 +583,6 @@ namespace AnkiBridge.Infrastructure.Migrations
             modelBuilder.Entity("AnkiBridge.Domain.Aggregates.Learning.LearningExample", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
                     b.Property<Guid>("LearningEntryId")
@@ -617,19 +627,19 @@ namespace AnkiBridge.Infrastructure.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("AnkiBridge.Domain.Aggregates.Dictionary.DictionaryTranslation", b =>
+            modelBuilder.Entity("AnkiBridge.Domain.Aggregates.Dictionary.DictionaryPronunciation", b =>
                 {
                     b.HasOne("AnkiBridge.Domain.Aggregates.Dictionary.DictionaryEntry", null)
-                        .WithMany("Translations")
+                        .WithMany("Pronunciations")
                         .HasForeignKey("DictionaryEntryId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("AnkiBridge.Domain.Aggregates.Dictionary.Pronunciation", b =>
+            modelBuilder.Entity("AnkiBridge.Domain.Aggregates.Dictionary.DictionaryTranslation", b =>
                 {
                     b.HasOne("AnkiBridge.Domain.Aggregates.Dictionary.DictionaryEntry", null)
-                        .WithMany("Pronunciations")
+                        .WithMany("Translations")
                         .HasForeignKey("DictionaryEntryId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();

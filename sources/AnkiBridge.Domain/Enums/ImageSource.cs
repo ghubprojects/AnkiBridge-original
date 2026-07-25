@@ -5,6 +5,5 @@ public enum ImageSource
     User,
     Pixabay,
     Pexels,
-    Unsplash,
-    Other,
+    Unknown
 }

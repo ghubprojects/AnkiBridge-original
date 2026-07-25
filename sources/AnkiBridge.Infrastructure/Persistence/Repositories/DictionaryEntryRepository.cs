@@ -1,7 +1,8 @@
-﻿using AnkiBridge.Domain.Aggregates.Dictionary;
+using AnkiBridge.Domain.Aggregates.Dictionary;
 using AnkiBridge.Domain.Enums;
 using AnkiBridge.Domain.SeedWork;
 using AnkiBridge.Infrastructure.Persistence.DatabaseContext;
+using Microsoft.EntityFrameworkCore;
 
 namespace AnkiBridge.Infrastructure.Persistence.Repositories;
 
@@ -9,13 +10,20 @@ public sealed class DictionaryEntryRepository(ApplicationDbContext context) : ID
 {
     public IUnitOfWork UnitOfWork => context;
 
-    public async Task AddAsync(DictionaryEntry entry, CancellationToken cancellationToken)
+    public async Task<bool> ExistsAsync(
+        string headword,
+        PartOfSpeech partOfSpeech,
+        DictionarySource source,
+        CancellationToken cancellationToken = default)
     {
-        context.DictionaryEntries.Add(entry);
+        return await context.DictionaryEntries
+            .AnyAsync(x =>
+                x.Headword == headword &&
+                x.PartOfSpeech == partOfSpeech &&
+                x.Source == source,
+                cancellationToken);
     }
 
-    public Task<DictionaryEntry?> FindByHeadwordAsync(string headword, PartOfSpeech partOfSpeech, CancellationToken cancellationToken = default)
-    {
-        throw new NotImplementedException();
-    }
+    public void Add(DictionaryEntry entry) 
+        => context.DictionaryEntries.Add(entry);
 }

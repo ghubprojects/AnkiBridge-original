@@ -1,4 +1,8 @@
-﻿using AnkiBridge.Domain.Aggregates.Learning;
+using System.Text.Json;
+using AnkiBridge.Application.Common.Contracts.Outbox;
+using AnkiBridge.Application.Common.IntegrationEvents;
+using AnkiBridge.Application.Features.Learning.IntegrationEvents;
+using AnkiBridge.Domain.Aggregates.Learning;
 using AnkiBridge.Domain.Enums;
 using AnkiBridge.Shared.Results;
 using MediatR;
@@ -6,12 +10,14 @@ using MediatR;
 namespace AnkiBridge.Application.Features.Learning.UseCases.CreateLearningEntry;
 
 public sealed class CreateLearningEntryCommandHandler(
-    ILearningEntryRepository learningEntryRepository)
+    ILearningEntryRepository learningEntryRepository,
+    IOutboxMessageRepository outboxMessageRepository)
     : IRequestHandler<CreateLearningEntryCommand, Result<Guid>>
 {
-    public async Task<Result<Guid>> Handle(CreateLearningEntryCommand request, CancellationToken cancellationToken)
+    public async Task<Result<Guid>> Handle(
+        CreateLearningEntryCommand request,
+        CancellationToken cancellationToken)
     {
-        // 1. Khởi tạo LearningEntry ban đầu thông qua Factory method
         var createResult = LearningEntry.Create(
             request.DictionaryEntryId,
             request.Headword,
@@ -22,66 +28,99 @@ public sealed class CreateLearningEntryCommandHandler(
             request.TranslationSource,
             request.Translation,
             request.Accent,
-            request.Ipa
-        );
+            request.Ipa);
 
         if (createResult.IsFailure)
             return createResult.ToFailure<Guid>();
 
         var learningEntry = createResult.Value;
+        var mediaEvents = new List<LearningEntryMediaUploadRequestedIntegrationEvent>();
 
-        // Trạng thái biến trung gian dùng để đẩy vào Event dữ liệu chính xác
-        string? targetAudioPath = null;
-        string? targetImagePath = null;
-
-        /**
-        // 2. Phân định nguồn Audio qua Domain API
-        if (request.AudioSource == AudioSource.Dictionary)
+        if (request.AudioSource is { } audioSource)
         {
-            learningEntry.SetAudioFromDictionary(request.AudioRelativePath);
-            targetAudioPath = learningEntry.AudioPath;
-        }
-        else if (request.AudioSource == AudioSource.User && !string.IsNullOrWhiteSpace(request.AudioAbsolutePath))
-        {
-            // Yêu cầu domain sinh cấu trúc lưu trữ chính thức
-            targetAudioPath = learningEntry.PrepareUserAudioProcessing(request.AudioFileName ?? "audio.mp3");
-        }
-
-        // 3. Phân định nguồn Image qua Domain API
-        if (request.ImageSource == ImageSource.Dictionary)
-        {
-            learningEntry.SetImageFromDictionary(request.ImageRelativePath);
-            targetImagePath = learningEntry.ImagePath;
-        }
-        else if (request.ImageSource == ImageSource.User && !string.IsNullOrWhiteSpace(request.ImageAbsolutePath))
-        {
-            // Yêu cầu domain sinh cấu trúc lưu trữ chính thức
-            targetImagePath = learningEntry.PrepareUserImageProcessing(request.ImageFileName ?? "image.jpg");
+            learningEntry.QueueAudioUpload(audioSource);
+            mediaEvents.Add(new LearningEntryMediaUploadRequestedIntegrationEvent(
+                learningEntry.Id,
+                LearningEntryMediaKind.Audio,
+                BuildBlobName(
+                    learningEntry.Id,
+                    "audio",
+                    request.AudioFileName,
+                    request.AudioSourceUrl,
+                    ".mp3"),
+                request.AudioContentType ?? "audio/mpeg",
+                audioSource == AudioSource.User ? null : request.AudioSourceUrl,
+                audioSource == AudioSource.User ? request.AudioAbsolutePath : null));
         }
 
-        // 4. Gắn Event chứa toàn bộ dữ liệu chỉ thị cho Outbox Background Worker xử lý I/O vật lý sau
-        learningEntry.AddDomainEvent(new LearningEntryCreatedEvent(
-            learningEntry.Id,
-            
-            request.AudioSource,
-            request.AudioAbsolutePath, // Thư mục tạm bên phía UI tải lên, Worker cần đọc từ đây
-            targetAudioPath,           // Vị trí lưu trữ chính thức trong Storage
-            request.AudioFileName,
-            request.AudioContentType,
+        if (request.ImageSource is { } imageSource)
+        {
+            learningEntry.QueueImageUpload(imageSource);
+            mediaEvents.Add(new LearningEntryMediaUploadRequestedIntegrationEvent(
+                learningEntry.Id,
+                LearningEntryMediaKind.Image,
+                BuildBlobName(
+                    learningEntry.Id,
+                    "image",
+                    request.ImageFileName,
+                    request.ImageSourceUrl,
+                    ".jpg"),
+                request.ImageContentType ?? "image/jpeg",
+                imageSource == ImageSource.User ? null : request.ImageSourceUrl,
+                imageSource == ImageSource.User ? request.ImageAbsolutePath : null));
+        }
 
-            request.ImageSource,
-            request.ImageAbsolutePath, // Thư mục tạm bên phía UI tải lên, Worker cần đọc từ đây
-            targetImagePath,           // Vị trí lưu trữ chính thức trong Storage
-            request.ImageFileName,
-            request.ImageContentType
-        ));
-        */
-
-        // 5. Đẩy xuống Repository. Tiến hành SaveChanges để đồng bộ Entity + Outbox Message trong cùng một DB Transaction.
         await learningEntryRepository.AddAsync(learningEntry, cancellationToken);
+
+        foreach (var mediaEvent in mediaEvents)
+        {
+            var payload = JsonSerializer.Serialize(
+                mediaEvent,
+                mediaEvent.GetType(),
+                IntegrationEventSubscriptionInfo.DefaultSerializerOptions);
+
+            await outboxMessageRepository.AddAsync(
+                new OutboxMessage(payload, mediaEvent.GetType().FullName!),
+                cancellationToken);
+        }
 
         await learningEntryRepository.UnitOfWork.SaveChangesAsync(cancellationToken);
 
         return Result.Success(learningEntry.Id);
+    }
+
+    private static string BuildBlobName(
+        Guid learningEntryId,
+        string mediaFolder,
+        string? originalFileName,
+        string? sourceUrl,
+        string fallbackExtension)
+    {
+        var extension = GetSafeExtension(originalFileName);
+
+        if (string.IsNullOrWhiteSpace(extension)
+            && Uri.TryCreate(sourceUrl, UriKind.Absolute, out var sourceUri))
+        {
+            extension = GetSafeExtension(sourceUri.AbsolutePath);
+        }
+
+        extension = string.IsNullOrWhiteSpace(extension) ? fallbackExtension : extension;
+
+        return $"learning-entries/{learningEntryId:N}/{mediaFolder}/{Guid.NewGuid():N}{extension}";
+    }
+
+    private static string GetSafeExtension(string? fileName)
+    {
+        if (string.IsNullOrWhiteSpace(fileName))
+            return string.Empty;
+
+        var extension = Path.GetExtension(Path.GetFileName(fileName));
+        if (extension.Length is < 2 or > 10
+            || extension.Skip(1).Any(character => !char.IsLetterOrDigit(character)))
+        {
+            return string.Empty;
+        }
+
+        return extension.ToLowerInvariant();
     }
 }

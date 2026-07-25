@@ -1,0 +1,52 @@
+name: ankibridge-dev-infra
+
+services:
+  postgres:
+    image: postgres:17.10-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-ankibridgedb}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    ports:
+      - "${BIND_ADDRESS:-127.0.0.1}:${POSTGRES_HOST_PORT:-5432}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+
+  azurite:
+    image: mcr.microsoft.com/azure-storage/azurite:3.35.0
+    restart: unless-stopped
+    command:
+      - azurite-blob
+      - --location
+      - /data
+      - --blobHost
+      - 0.0.0.0
+      - --blobPort
+      - "10000"
+      - --loose
+      - --silent
+    ports:
+      - "${BIND_ADDRESS:-127.0.0.1}:${AZURITE_BLOB_PORT:-10000}:10000"
+    volumes:
+      - azurite-data:/data
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "const net=require('net');const s=net.connect(10000,'127.0.0.1',()=>{s.end();process.exit(0)});s.on('error',()=>process.exit(1))"
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 5s
+
+volumes:
+  postgres-data:
+  azurite-data:

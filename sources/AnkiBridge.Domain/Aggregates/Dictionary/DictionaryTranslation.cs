@@ -6,8 +6,10 @@ namespace AnkiBridge.Domain.Aggregates.Dictionary;
 
 public sealed class DictionaryTranslation : Entity<Guid>
 {
-    public TranslationSource Source { get; private set; }
     public string Text { get; private set; } = default!;
+    public TranslationSource Source { get; private set; }
+
+    #region Constructors
 
     private DictionaryTranslation() { }
 
@@ -18,6 +20,10 @@ public sealed class DictionaryTranslation : Entity<Guid>
         Source = source;
     }
 
+    #endregion
+
+    #region Factory Method
+
     internal static Result<DictionaryTranslation> Create(string text, TranslationSource source)
     {
         if (string.IsNullOrWhiteSpace(text))
@@ -25,4 +31,6 @@ public sealed class DictionaryTranslation : Entity<Guid>
 
         return new DictionaryTranslation(text.Trim(), source);
     }
+
+    #endregion
 }

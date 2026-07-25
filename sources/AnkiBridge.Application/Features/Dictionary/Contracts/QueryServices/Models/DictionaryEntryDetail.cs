@@ -1,4 +1,4 @@
-﻿using AnkiBridge.Domain.Enums;
+using AnkiBridge.Domain.Enums;
 
 namespace AnkiBridge.Application.Features.Dictionary.Contracts.QueryServices.Models;
 
@@ -7,8 +7,8 @@ public sealed record DictionaryEntryDetail(
     string Headword,
     PartOfSpeech PartOfSpeech,
     DictionarySource Source,
-    List<DictionaryEntryDetailDefinition> Definitions,
-    List<DictionaryEntryDetailTranslation> Translations,
-    List<DictionaryEntryDetailPronunciation> Pronunciations,
-    List<DictionaryEntryDetailImage> Images
+    IReadOnlyList<DictionaryEntryDetailDefinition> Definitions,
+    IReadOnlyList<DictionaryEntryDetailTranslation> Translations,
+    IReadOnlyList<DictionaryEntryDetailPronunciation> Pronunciations,
+    IReadOnlyList<DictionaryEntryDetailImage> Images
 );

@@ -1,9 +1,10 @@
-﻿using AnkiBridge.Application.Common.Contracts.Images;
+using AnkiBridge.Application.Abstractions.Dictionary;
+using AnkiBridge.Application.Abstractions.Images;
+using AnkiBridge.Application.Abstractions.Speech;
+using AnkiBridge.Application.Abstractions.Translation;
 using AnkiBridge.Application.Common.Contracts.Outbox;
-using AnkiBridge.Application.Common.Contracts.Speech;
 using AnkiBridge.Application.Common.Contracts.Storage;
 using AnkiBridge.Application.Features.Dictionary.Contracts.QueryServices;
-using AnkiBridge.Application.Features.Dictionary.Contracts.Scraping;
 using AnkiBridge.Application.Features.Flashcard.Contracts.Anki;
 using AnkiBridge.Application.Features.Flashcard.Contracts.QueryServices;
 using AnkiBridge.Application.Features.Learning.Contracts.QueryServices;
@@ -12,6 +13,17 @@ using AnkiBridge.Domain.Aggregates.Flashcard.Decks;
 using AnkiBridge.Domain.Aggregates.Flashcard.Notes;
 using AnkiBridge.Domain.Aggregates.Flashcard.NoteTypes;
 using AnkiBridge.Domain.Aggregates.Learning;
+using AnkiBridge.Infrastructure.ExternalServices.AnkiConnect;
+using AnkiBridge.Infrastructure.ExternalServices.Dictionary.Cambridge;
+using AnkiBridge.Infrastructure.ExternalServices.Images;
+using AnkiBridge.Infrastructure.ExternalServices.Images.Pexels;
+using AnkiBridge.Infrastructure.ExternalServices.Images.Pixabay;
+using AnkiBridge.Infrastructure.ExternalServices.Speech.Google;
+using AnkiBridge.Infrastructure.ExternalServices.Storage;
+using AnkiBridge.Infrastructure.ExternalServices.Storage.Azure;
+using AnkiBridge.Infrastructure.ExternalServices.Storage.AzureBlob;
+using AnkiBridge.Infrastructure.ExternalServices.Translation;
+using AnkiBridge.Infrastructure.ExternalServices.Translation.Google;
 using AnkiBridge.Infrastructure.Outbox;
 using AnkiBridge.Infrastructure.Persistence.Abstractions;
 using AnkiBridge.Infrastructure.Persistence.DatabaseContext;
@@ -19,11 +31,6 @@ using AnkiBridge.Infrastructure.Persistence.Interceptors;
 using AnkiBridge.Infrastructure.Persistence.QueryServices;
 using AnkiBridge.Infrastructure.Persistence.Repositories;
 using AnkiBridge.Infrastructure.Persistence.Seeding.Seeders;
-using AnkiBridge.Infrastructure.Services.AnkiConnect;
-using AnkiBridge.Infrastructure.Services.Images;
-using AnkiBridge.Infrastructure.Services.Scraping;
-using AnkiBridge.Infrastructure.Services.Speech;
-using AnkiBridge.Infrastructure.Services.Storage;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Configuration;
@@ -37,10 +44,18 @@ public static class DependencyInjection
 {
     public static IHostApplicationBuilder AddInfrastructureServices(this IHostApplicationBuilder builder)
     {
+        builder.AddPersistenceServices();
+        builder.AddExternalServices();
+
+        return builder;
+    }
+
+    public static IHostApplicationBuilder AddPersistenceServices(this IHostApplicationBuilder builder, bool dispatchDomainEvents = true)
+    {
         var services = builder.Services;
         var configuration = builder.Configuration;
 
-        // Add database
+        // Add database context
         services.AddDbContext<ApplicationDbContext>((serviceProvider, options) =>
         {
             options.AddInterceptors(serviceProvider.GetServices<ISaveChangesInterceptor>());
@@ -49,7 +64,8 @@ public static class DependencyInjection
         builder.EnrichNpgsqlDbContext<ApplicationDbContext>();
 
         // Add interceptors
-        services.AddScoped<ISaveChangesInterceptor, DomainEventDispatchInterceptor>();
+        if (dispatchDomainEvents)
+            services.AddScoped<ISaveChangesInterceptor, DomainEventDispatchInterceptor>();
         services.AddScoped<ISaveChangesInterceptor, AuditingInterceptor>();
         services.AddScoped<ISaveChangesInterceptor, SoftDeletingInterceptor>();
 
@@ -78,84 +94,72 @@ public static class DependencyInjection
         services.AddScoped<IOutboxMessageRepository, OutboxMessageRepository>();
         services.AddHostedService<OutboxProcessor>();
 
-        // Add storage
-        builder.AddAzureBlobServiceClient("blobs");
-        services.AddScoped<IFileStorage, AzureBlobStorage>();
-
-        // Add anki service
-        services.AddScoped<IAnkiService, AnkiConnectService>();
-        services.AddHttpClient<IAnkiConnectClient, AnkiConnectClient>(client =>
-        {
-            client.BaseAddress = new Uri("http://localhost:8765"); // AnkiConnect
-        });
-
-        services.AddMediaServices(configuration);
-
-        services.AddScrapingServices(configuration);
-
         return builder;
     }
 
-    public static IServiceCollection AddMediaServices(this IServiceCollection services, IConfiguration configuration)
+    private static IHostApplicationBuilder AddExternalServices(this IHostApplicationBuilder builder)
     {
-        services.AddSpeechServices(configuration);
-        services.AddImageServices(configuration);
-        return services;
-    }
+        var services = builder.Services;
+        var configuration = builder.Configuration;
 
-    // ── Speech ────────────────────────────────────────────────────────────────
+        // Add storage
+        services.Configure<AzureBlobStorageOptions>(configuration.GetSection(AzureBlobStorageOptions.SectionName));
+        builder.AddAzureBlobServiceClient("blobs");
+        services.AddScoped<IFileStorage, AzureBlobStorage>();
+        services.AddScoped<IRemoteMediaSource, HttpRemoteMediaSource>();
+        services.AddHttpClient("media-download", client =>
+        {
+            client.Timeout = TimeSpan.FromSeconds(30);
+            client.DefaultRequestHeaders.UserAgent.ParseAdd("AnkiBridge/1.0");
+        });
 
-    private static IServiceCollection AddSpeechServices(this IServiceCollection services, IConfiguration configuration)
-    {
-        services.Configure<GoogleSpeechOptions>(configuration.GetSection(GoogleSpeechOptions.SectionName));
+        // Add anki service
+        services.Configure<AnkiConnectOptions>(configuration.GetSection(AnkiConnectOptions.SectionName));
+        services.AddScoped<IAnkiService, AnkiConnectService>();
+        services.AddHttpClient<IAnkiConnectClient, AnkiConnectClient>((serviceProvider, client) =>
+        {
+            var options = serviceProvider.GetRequiredService<IOptions<AnkiConnectOptions>>().Value;
+            client.Timeout = TimeSpan.FromSeconds(options.TimeoutSeconds);
+        });
 
-        // No HttpClient — GoogleSpeechSynthesizer only builds URLs.
-        services.AddSingleton<ISpeechSynthesizer, GoogleSpeechSynthesizer>();
+        // Add dictionary services
+        services.Configure<CambridgeDictionaryOptions>(configuration.GetSection(CambridgeDictionaryOptions.SectionName));
+        services.AddScoped<IDictionaryEntryProvider, CambridgeDictionaryEntryProvider>();
+        services.AddScoped<IIpaProvider, CambridgeDictionaryIpaProvider>();
 
-        return services;
-    }
+        // Add translation services
+        services.AddScoped<CambridgeDictionaryTranslationProvider>();
+        services.Configure<GoogleTranslationOptions>(configuration.GetSection(GoogleTranslationOptions.SectionName));
+        services.AddHttpClient<GoogleTranslationProvider>((serviceProvider, client) =>
+        {
+            var options = serviceProvider.GetRequiredService<IOptions<GoogleTranslationOptions>>().Value;
+            client.Timeout = TimeSpan.FromSeconds(options.TimeoutSeconds);
+        });
 
-    // ── Images ────────────────────────────────────────────────────────────────
-
-    private static IServiceCollection AddImageServices(this IServiceCollection services, IConfiguration configuration)
-    {
-        services.Configure<PixabayOptions>(configuration.GetSection(PixabayOptions.SectionName));
-
-        services.Configure<PexelsOptions>(configuration.GetSection(PexelsOptions.SectionName));
-
-        // Typed HttpClients — concrete types injected directly into CompositeImageProvider.
-        services
-            .AddHttpClient<PixabayImageProvider>()
-            .ConfigureHttpClient(client => client.Timeout = TimeSpan.FromSeconds(10));
-
-        services
-            .AddHttpClient<PexelsImageProvider>()
-            .ConfigureHttpClient((sp, client) =>
-            {
-                var opts = sp.GetRequiredService<IOptions<PexelsOptions>>().Value;
-                client.DefaultRequestHeaders.Add("Authorization", opts.ApiKey);
-                client.Timeout = TimeSpan.FromSeconds(10);
-            });
-
-        services.AddScoped<CompositeImageProvider>();
-        services.AddScoped<IImageProvider, CompositeImageProvider>();
-
-        return services;
-    }
-
-    public static IServiceCollection AddScrapingServices(this IServiceCollection services, IConfiguration configuration)
-    {
-        services.Configure<CambridgeDictionaryOptions>(
-            configuration.GetSection(CambridgeDictionaryOptions.SectionName));
-
-        services.AddScoped<IDictionaryProvider, CambridgeDictionaryProvider>();
-        services.AddScoped<IPhraseIpaResolver, CambridgePhraseIpaResolver>();
-
-        services.AddHttpClient<GoogleTranslationProvider>();
-        services.AddScoped<CambridgeTranslationProvider>();
-        services.AddScoped<GoogleTranslationProvider>();
         services.AddScoped<ITranslationProvider, FallbackTranslationProvider>();
 
-        return services;
+        // Add speech services
+        services.Configure<GoogleSpeechOptions>(configuration.GetSection(GoogleSpeechOptions.SectionName));
+        services.AddSingleton<IAudioProvider, GoogleSpeechProvider>();
+
+        // Add image services
+        services.Configure<PixabayOptions>(configuration.GetSection(PixabayOptions.SectionName));
+        services.AddHttpClient<PixabayImageProvider>((serviceProvider, client) =>
+        {
+            var options = serviceProvider.GetRequiredService<IOptions<PixabayOptions>>().Value;
+            client.Timeout = TimeSpan.FromSeconds(options.TimeoutSeconds);
+        });
+
+        services.Configure<PexelsOptions>(configuration.GetSection(PexelsOptions.SectionName));
+        services.AddHttpClient<PexelsImageProvider>((serviceProvider, client) =>
+        {
+            var options = serviceProvider.GetRequiredService<IOptions<PexelsOptions>>().Value;
+            client.DefaultRequestHeaders.Add("Authorization", options.ApiKey);
+            client.Timeout = TimeSpan.FromSeconds(options.TimeoutSeconds);
+        });
+
+        services.AddScoped<IImageProvider, FallbackImageProvider>();
+
+        return builder;
     }
 }
